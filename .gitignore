@@ -1,0 +1,8 @@
+# Generated Files
+*.csv
+
+# Python Files
+__pycache__
+
+# System Files
+.DS_Store
