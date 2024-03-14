@@ -28,7 +28,7 @@ class CSVParser:
         """Import CSV as list of filepath arrays"""
         data: dict[int,FileGroup] = {}
 
-        printerr('Loading CSV...')
+        printerr(f'Loading CSV from {filepath}...')
         with open(filepath, "r") as f:
             csvfile = csv.reader(f)
 
@@ -68,7 +68,7 @@ class CSVParser:
             if not is_yes("CSV exists. Overwrite"):
                 return
 
-        printerr('Saving CSV...')
+        printerr(f'Saving CSV to {filepath}...')
         with open(filepath, "w") as f:
             csvfile = csv.writer(f)
             csvfile.writerow(cell.value for cell in self.hdr)
