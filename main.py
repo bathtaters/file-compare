@@ -8,30 +8,31 @@ usage = """
 
 File Scanner by bathtaters
 
-Usage: $MAIN [-mode] [-option:value] [csv path] paths...
+Usage: python $MAIN [-m:mode] [-option:value] [csv path] paths...
 
 Modes:
- (-s)   (Default) Scan each path for photos, save results to CSV
-  -k    Update CSV, auto-flagging which files to keep
-  -d    Delete all unflagged files in CSV and update CSV
-  -m    Move all unflagged files in CSV to first path
-  -r    Recover all unflagged files in CSV from first path
-  -x    Remove all keep flags from CSV
-  -c    Cleans up CSV, removing deleted photos or groups tha are all flagged to keep
-  -p    (Experimental) View all photos in CSV, one group at a time
-  -rm   Get delete command as string (Prints to stdout)
+  -m:scan     Scan each path for files, save results to CSV.
+  -m:keep     Update CSV, auto-flagging which files to keep.
+  -m:reset    Clear all 'keep' flags in CSV.
+  -m:move     Move all unflagged files in CSV to first non-CSV path.
+  -m:recover  Return all unflagged files in CSV from first non-CSV path to original location.
+  -m:clean    Cleans up CSV: remove paths that don't exist and groups that are all flagged as 'keep.'
+  -m:view     Open files in CSV with default app, one group at a time (Requires command line interaction).
+  -m:delete   Delete all unflagged files permanently and update CSV.
+  -m:rmstr    Get delete command as string (Prints to stdout).
 
-Scan (-s) & Update (-k) Options:
-  -g:?  Set the file stats to group by, ? is an unspaced, comma-seperated list of values:
+Options for scan & keep modes:
+  -g:?  Set the file details to group by, ? is an unspaced, comma-seperated list of values:
         • name      Match on same start of filename
         • size      Match on file size (within variance range)
         • ctime     Match on file creation time
         • mtime     Match on file modified time
-  -sv:# Variance range (in bytes) of file size to allowed within group
-  -tv:# Variance range (in ms) of created/modified times to allowed within group
-  -e:?  Set the extensions to scan, ? is an unspaced, comma-seperated list (ex. jpg,jpeg,mp4)
-  -i:?  Filenames to ignore/skip, ? is an unspaced, comma-seperated list (ex. .DS_Store,Thumbs.db)
-  -v    If present, prints every match found (NOTE: All feedback is printed to stderr)
+  -x:?  Set the extensions to scan, ? is an unspaced, comma-seperated list (ex. jpg,jpeg,mp4).
+  -i:?  Filenames to ignore/skip, ? is an unspaced, comma-seperated list (ex. .DS_Store,Thumbs.db).
+  -vs:# Variance range (in bytes) of file size to allowed within group.
+  -vt:# Variance range (in ms) of created/modified times to allowed within group.
+  -v    If present, prints every match found (NOTE: All feedback is printed to stderr).
+  -h    Shows you this help text.
 
 If no CSV provided, uses '$CSV_PATH'
 """
@@ -62,54 +63,54 @@ options = {
 ### --- CLI RUNNER --- ###
 
 import sys
-from src.base.compUtils import get_ui
+from src.base.compUI import get_ui
 from src.compControl import ComparisonController
 
 def main():
-    action, opts, csv = get_ui(sys.argv, usage, DEFAULT_CSV)
+    mode, opts, csv = get_ui(sys.argv, usage, DEFAULT_CSV)
 
     options.update(opts)
     scanner = ComparisonController(**options)
 
-    if action == "SCAN":
+    if mode == "scan":
         scanner.scan()
         scanner.save_csv(csv)
 
-    elif action == "KEEP":
+    elif mode == "keep":
         scanner.load_csv(csv)
         scanner.auto_keep()
         scanner.save_csv(csv)
-
-    elif action == "DELETE":
-        scanner.load_csv(csv)
-        scanner.delete()
-        scanner.save_csv(csv)
-
-    elif action == "DELSTR":
-        scanner.load_csv(csv)
-        print(scanner.delete_str())
     
-    elif action == "MOVE":
+    elif mode == "reset":
+        scanner.load_csv(csv)
+        scanner.reset_keep(False)
+        scanner.save_csv(csv)
+    
+    elif mode == "move":
         scanner.load_csv(csv)
         scanner.move()
     
-    elif action == "RECOV":
+    elif mode == "recover":
         scanner.load_csv(csv)
         scanner.recover()
-    
-    elif action == "VIEW":
-        scanner.load_csv(csv)
-        scanner.view_all()
 
-    elif action == "CLEAN":
+    elif mode == "clean":
         scanner.load_csv(csv)
         scanner.clean(clean_solo=True, clean_kept=True)
         scanner.save_csv(csv)
     
-    elif action == "RESET":
+    elif mode == "view":
         scanner.load_csv(csv)
-        scanner.reset_keep(False)
+        scanner.view_all()
+
+    elif mode == "delete":
+        scanner.load_csv(csv)
+        scanner.delete()
         scanner.save_csv(csv)
+
+    elif mode == "rmstr":
+        scanner.load_csv(csv)
+        print(scanner.delete_str())
 
     else:
         sys.exit(1)
