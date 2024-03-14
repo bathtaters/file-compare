@@ -14,7 +14,7 @@ class ComparisonController:
     
     To extend comparison stats:
     1) Add a new stat key to FileStat Enum `compFile.py`
-    2) Add to File class [optional]: current_stats, hash, from_str, [to_str, comparison_funcs] `compFile.py`
+    2) Add to File class props: current_stats, hash, from_str, [to_str, comparison_funcs] `compFile.py`
     3) (Optional) Add to FileAutoKeeper.algorithms to customize AutoKeep behavior `compAlgos.py`
     """
 
