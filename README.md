@@ -1,4 +1,4 @@
-# File Scanner
+# File Scanner v1.0.0
 #### by bathtaters
 
 ```bash
@@ -32,5 +32,4 @@ If no CSV provided, uses './results.csv'
 ```
 
 ### TODO:
- - Init Repo
  - Add Video and Image options
