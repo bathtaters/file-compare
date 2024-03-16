@@ -1,7 +1,8 @@
 from typing import Hashable, Callable
 from pathlib import Path
-from .compFile import File, FileGroup, FileStat
-from .compUtils import printerr
+from .compFile import File, FileGroup
+from .compFilePlugin import FileStat
+from .compUtils import printerr, EnumGet
 
 
 class FileComparer:
@@ -28,26 +29,27 @@ class FileComparer:
     """If True, combine groups with matching hashes/keys (Default: True)"""
     verbose: bool
     """If True, print each duplicate that is found"""
-    comparers: dict[FileStat, Callable[[Hashable, Hashable], bool]]
-    """Special comparison dictionary based on FileStat (Result of File.comparison_funcs)"""
+    comparers: dict[EnumGet, Callable[[Hashable, Hashable], bool]]
+    """Special comparison dictionary based on StatEnum (Result of File.comparison_funcs)"""
+    plugin_settings: dict
+    """Additional settings to pass to plugin comparison functions"""
     
     def __init__(
         self,
         exts: list[str] = None,
         ignore: list[str] = [],
         *,
-        time_var = 0,
-        size_var = 0,
-        min_name = 3,
         combine_groups = True,
         verbose = False,
+        **plugin_settings,
     ):
         self.exts = exts
         self.ignore = [fn.lower() for fn in ignore]
         self.combine_groups = combine_groups
         self.verbose = verbose
+        self.plugin_settings = plugin_settings
 
-        self.comparers = File.comparison_funcs(min_name, size_var, time_var)
+        self.comparers = {}
 
     @property
     def exts(self):
@@ -60,14 +62,13 @@ class FileComparer:
         else:
             self.__exts = [f"{'' if e[0] == '.' else '.'}{e.lower()}" for e in value]
 
-    def run(self, dirs: list[Path | str], groups: list[FileStat] = None):
+    def run(self, dirs: list[Path | str], groups: list[EnumGet]):
         """Run scan, returning a list of FileGroups, only selectings by provided groups
-        (or all in FileStat if None provided)"""
-        
-        if groups is None:
-            groups = list(FileStat)
+        (or all in StatEnums if None provided)"""
+
+        self.comparers = File.comparison_funcs(self.plugin_settings)
             
-        matches: dict[FileStat, dict[Hashable, FileGroup]] = dict((g, {}) for g in groups)
+        matches: dict[EnumGet, dict[Hashable, FileGroup]] = dict((g, {}) for g in groups)
         skipped: set[str] = set()
 
         printerr(f"Scanning {len(dirs)} directories...")
@@ -149,7 +150,7 @@ class FileComparer:
         return result
     
 
-    def __is_match(self, stat: FileStat, a: Hashable, b: Hashable):
+    def __is_match(self, stat: EnumGet, a: Hashable, b: Hashable):
         """Returns TRUE if a & b match"""
         if stat in self.comparers:
             return self.comparers[stat](a, b)
@@ -171,15 +172,18 @@ class FileAutoKeeper:
         self,
         exts: list[str] = None,
         locations: list[Path | str] = None,
+        verbose = False,
+        *,
         size_var: int = 0,
         time_var: float = 0,
-        verbose = False,
+        **plugin_settings,
     ):
         self.exts = exts
         self.size_var = size_var
         self.time_var = time_var
         self.locations = locations
         self.verbose = verbose
+        self.plugin_settings = plugin_settings
 
     @property
     def exts(self):
@@ -330,5 +334,5 @@ class FileAutoKeeper:
     algorithms = {
         FileStat.SIZE: [newest_date, pref_ext, pref_loc, min_name],
     }
-    """For each FileGroup with given FileStat, a list of algorithms to run in order.
+    """For each FileGroup with given StatEnum, a list of algorithms to run in order.
     Otherwise run in default_order."""

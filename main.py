@@ -56,6 +56,9 @@ options = {
     "ignore": ('.DS_Store','Thumbs.db'),
     # If True, prints each duplicate found to stderr
     "verbose": False,
+    # List ComparisonPlugins to use here
+    "plugins": [],
+    # Add any plugin settings below
 }
 
 

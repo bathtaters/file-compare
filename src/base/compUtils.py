@@ -127,9 +127,18 @@ class EnumGet(Enum):
     expects uppercase member names and capitalized values"""
 
     @classmethod
-    def get(cls, val: Self | str) -> Self | None:
-        """Get matching val (Check uppercase names/capitalized values)
-        raises a ValueError if not found."""
+    def get(cls, val: Self | str, other_enums: list[type[Self]] = []) -> Self | None:
+        """
+        Get matching Enum instance (Check uppercase names/capitalized values).
+        - Will check each Enum in other_enums then check this class.
+        - raises a ValueError if not found.
+        """
+        for enum in other_enums:
+            try:
+                return enum.get(val)
+            except ValueError:
+                pass
+
         if type(val) is cls:
             return val
         try:

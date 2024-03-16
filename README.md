@@ -1,5 +1,5 @@
-# File Scanner v1.0.0
-#### by bathtaters
+# File Scanner
+v1.0.0 – by bathtaters
 
 ```bash
 Usage: python main.py [-m:mode] [-option:value] [csv path] paths...
@@ -32,4 +32,7 @@ If no CSV provided, uses './results.csv'
 ```
 
 ### TODO:
- - Add Video and Image options
+ - Add Video and Image options (See compControl for info on how)
+    - Get image dimensions
+    - Check video for audio?
+    - Add Music compare method (hasher?)
