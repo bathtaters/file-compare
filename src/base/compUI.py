@@ -47,7 +47,7 @@ MODES = (
     'clean',
     'view',
     'delete',
-    'delstr'
+    'rmstr'
 )
 
 OPT_MAP = {
