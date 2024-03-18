@@ -30,9 +30,3 @@ Options for scan & auto modes:
 
 If no CSV provided, uses './results.csv'
 ```
-
-### TODO:
- - Add Video and Image options (See compControl for info on how)
-    - Get image dimensions
-    - Check video for audio?
-    - Add Music compare method (hasher?)
