@@ -13,7 +13,7 @@ class ComparisonPlugin(Generic[Stat]):
     - Methods: current_stats, hash, from_str
 
     Optional overrides:
-    - Props: EXTS
+    - Props: EXTS, GROUP_BY
     - Methods: __init__, comparison_funcs, to_str
 
     NOTE: To use custom AutoKeep algorithms,
@@ -29,6 +29,9 @@ class ComparisonPlugin(Generic[Stat]):
 
     STATS: type[Stat] = EnumGet
     """Extension of EnumGet containing the Stats supported by this plugin"""
+
+    GROUP_BY: list[Stat] | None = None
+    """Recommended stats to use for file-grouping (Default: None => all STATS)"""
 
     path: Path
     """Underlying file to run comparison on."""

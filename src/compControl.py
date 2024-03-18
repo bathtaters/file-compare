@@ -203,7 +203,7 @@ class ComparisonController:
 
 
     def register_plugin(self, plugin: type[ComparisonPlugin] = None, **plugin_settings):
-        """Use to add a new plugin and/or settings to the engine
+        """Add a new plugin and/or settings to the engine
         raises TypeError if invalid type or ValueError if plugin is duplicate."""
 
         if plugin is not None:
@@ -218,6 +218,7 @@ class ComparisonController:
 
 
     def deregister_plugin(plugin: type[ComparisonPlugin]):
+        """Remove a plugin that was previously registered."""
         File.plugins.remove(plugin)
 
 
@@ -241,13 +242,16 @@ class ComparisonController:
     def _group_by(self):
         """Get actual value of GroupBy (As Stat list)"""
         group_by: list[EnumGet] = []
-        stat_enums: list[EnumGet] = [p.STATS for p in File.plugins]
 
         if self.group_by is None:
-            for stat_enum in stat_enums:
-                group_by.extend(stat_enum)
+            for plugin in File.plugins:
+                if plugin.GROUP_BY is None:
+                    group_by.extend(plugin.STATS)
+                else:
+                    group_by.extend(plugin.GROUP_BY)
             return group_by
         
+        stat_enums: list[EnumGet] = [p.STATS for p in File.plugins]
         for stat in self.group_by:
             group_by.append(EnumGet.get(stat, stat_enums))
         return group_by
