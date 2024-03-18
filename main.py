@@ -39,6 +39,9 @@ If no CSV provided, uses '$CSV_PATH'
 
 ### --- BASE OPTIONS --- ###
 
+# Import Plugins
+from plugins.videoPlugin import VideoPlugin
+
 # Default CSV file
 DEFAULT_CSV = "./results.csv"
 
@@ -46,8 +49,8 @@ DEFAULT_CSV = "./results.csv"
 options = {
     # Default file extensions (In order of preference), None will search all
     "exts": None,
-    # Default fields to create groups with
-    "group_by": ('name','size','ctime','mtime'),
+    # Default fields to create groups with (None will use defaults from plugins)
+    "group_by": None, # ('name','size','ctime','mtime','vid_hash','vid_streams','vid_dur'),
     # Default variance (+/-) for size stat within groups
     "size_var": 0,
     # Default variance (+/-) for create/modify times stat within groups
@@ -56,9 +59,12 @@ options = {
     "ignore": ('.DS_Store','Thumbs.db'),
     # If True, prints each duplicate found to stderr
     "verbose": False,
+
+    ### PLUGINS ###
     # List ComparisonPlugins to use here
-    "plugins": [],
-    # Add any plugin settings below
+    "plugins": [VideoPlugin],
+    # Threshold for perceptual hash comparisons
+    "threshold": 95,
 }
 
 
