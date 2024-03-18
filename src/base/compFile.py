@@ -103,7 +103,6 @@ class File:
         self.keep = bool(keep)
         self.__stats = {}
         self.update_stats(stats)
-        self.update_stats()
 
     def update_stats(self, stats: dict[EnumGet, str] = None):
         """Update file stats from CSV if dict provided, otherwise fetch from OS."""
