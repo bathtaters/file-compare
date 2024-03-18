@@ -121,6 +121,40 @@ def range_matcher(variance) -> Callable[[Hashable, Hashable], bool]:
         return lambda a, b: a == b
     return lambda a, b : b >= a - variance and b <= a + variance
 
+def sortnum(a, b, invert=False):
+    """
+    Sort two numbers based on greater-than operation.
+    - Assumes the numbers are not equal (Do this check before calling).
+    - invert=False: returns +1 if A is smaller, -1 if larger.
+    - invert=True: returns -1 if A is smaller, +1 if larger.
+    """
+    if a is None:
+        return -1
+    elif b is None:
+        return 1
+    return 1 if a > b == invert else -1
+
+def sortlist(a, b, prefs: list, valtype: str = None):
+    """
+    Sort two values based on a preference list
+    - Assumes the values are not equal (Do this check before calling).
+    - prefs: List of preferences in order of Most->Least preferred.
+    - Returns positive number if A is more preferred, negative if less.
+    - If valtype is not none, print out missing values.
+    """
+    if a in prefs:
+        if b in prefs:
+            return prefs.index(a) - prefs.index(b)
+        else:
+            if valtype and b is not None:
+                print(f"Unknown {valtype}: {b}")
+            return 1
+    elif b in prefs:
+        if valtype and a is not None:
+            print(f"Unknown {valtype}: {a}")
+        return -1
+    return sortnum(a, b)
+
 
 class EnumGet(Enum):
     """Extend Enum class with getter method,
@@ -146,3 +180,38 @@ class EnumGet(Enum):
         except KeyError:
             pass
         return cls(val.capitalize())
+
+
+class RichCompare:
+    """
+    Uses a method called '_cmp' to generate rich comparison methods.
+
+    IMPORTANT! Must implement _cmp(self, other) -> int
+    """
+    def _cmp(self: Self, other: Self) -> int:
+        """
+        Accept another instance of this class,
+        check how they should be ordered,
+        - If `self` and `other` are equal return 0.
+        - If `self` comes before `other` return a positive number,
+        - If `self` comes after `other` return a negative number.
+        """
+        raise NotImplementedError("_cmp function must be implemented")
+    
+    def __lt__(self, other):
+        return self._cmp(other) < 0
+
+    def __le__(self, other):
+        return self._cmp(other) <= 0
+
+    def __eq__(self, other):
+        return self._cmp(other) == 0
+
+    def __ne__(self, other):
+        return self._cmp(other) != 0
+
+    def __ge__(self, other):
+        return self._cmp(other) >= 0
+
+    def __gt__(self, other):
+        return self._cmp(other) > 0
