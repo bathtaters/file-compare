@@ -1,4 +1,5 @@
 from .videoFile import VideoFile
+from .ffstream import FFStream
 from .hasher import Hasher
 from ..base.compPlugin import ComparisonPlugin, EnumGet
 
@@ -63,7 +64,7 @@ class VideoPlugin(ComparisonPlugin):
         """Convert value of stat to a string for display/CSV.
         Optional to override default to_str function (str())."""
         if stat == VideoStats.VID_STREAMS:
-            return VideoFile.to_json(value)
+            return " | ".join(str(s) for s in sorted(value))
         return str(value)
     
     def from_str(self, stat: VideoStats, value: str):
@@ -75,6 +76,6 @@ class VideoPlugin(ComparisonPlugin):
         if stat == VideoStats.VID_HASH:
             return Hasher.from_hex(value)
         if stat == VideoStats.VID_STREAMS:
-            return VideoFile.to_streams(value)
+            return [FFStream.from_str(s) for s in value.split(" | ")]
         return str(value)
 

@@ -1,6 +1,7 @@
 from typing import Self
 from json import dumps
-from ..base.compUtils import RichCompare, to_metric, sortlist, sortnum
+from re import compile, IGNORECASE
+from ..base.compUtils import RichCompare, to_metric, from_metric, sortlist, sortnum
 
 class FFStream(RichCompare):
     """Single stream within a media file"""
@@ -90,13 +91,13 @@ class FFStream(RichCompare):
         if "codec" in json:
             data["codec_name"] = json["codec"]
         if "bitrate" in json:
-            data["bit_rate"] = json["bitrate"]
+            data["bit_rate"] = int(json["bitrate"])
         if "duration" in json:
-            data["duration"] = json["duration"]
+            data["duration"] = float(json["duration"])
         if "width" in json:
-            data["width"] = json["width"]
+            data["width"] = int(json["width"])
         if "height" in json:
-            data["height"] = json["height"]
+            data["height"] = int(json["height"])
         if "fields" in json:
             data["field_order"] = json["fields"]
         if "fps" in json:
@@ -105,6 +106,33 @@ class FFStream(RichCompare):
                 data["r_frame_rate"] = fraction
         return cls(data)
     
+    _FIELD_DICT = { "p": "progressive", "i": "interlaced" }
+    __RX_BASE = compile(r"^(\w+)\s*<([^>]+)>:\s*([0-9\.]+)\s*s\s*\(([\d\.]+\s*\w?)bps\)(.*)$", IGNORECASE)
+    __RX_VID = compile(r"^\s*@\s*([0-9\.]+)fps,?\s*(\d+)\s*x\s*(\d+)(\w)$", IGNORECASE)
+
+    @classmethod
+    def from_str(cls, string: str):
+        """Create FFStream from a string"""
+        data = {}
+
+        match = cls.__RX_BASE.match(string)
+        if not match:
+            raise ValueError("Invalid string format. unable to create Stream", string)
+        data["media"] = match.group(1)
+        data["codec"] = match.group(2)
+        data["duration"] = match.group(3)
+        data["bitrate"] = from_metric(match.group(4).upper())
+        vid_data = match.group(5)
+
+        match = cls.__RX_VID.match(vid_data)
+        if not match:
+            return cls.from_json(data) # Not video
+        data["fps"] = match.group(1)
+        data["width"] = match.group(2)
+        data["height"] = match.group(3)
+        data["fields"] = cls._FIELD_DICT.get(match.group(4))
+        return cls.from_json(data)
+
     def __str__(self) -> str:
         base =  f"{self.media.capitalize()} <{self.codec}>: {round(self.duration,2)}s ({to_metric(self.bitrate, 'bps')})"
         if self.media.lower() == 'video':
@@ -143,8 +171,7 @@ class FFStream(RichCompare):
             return str(fps)
         
         num = round(fps)
-        for div in (1001,):
-            if round(fps * div / 1000, 3) == num:
-                return str(f"{num * 1000}/{div}")
+        for n, d in ((1001,1000),(2000,1993)):
+            if round(fps * n / d, 3) == num:
+                return str(f"{round(num * d)}/{n}")
         return None
-    
