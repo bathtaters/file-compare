@@ -1,7 +1,8 @@
 from typing import Hashable, Callable
 from pathlib import Path
-from .compFile import File, FileGroup, FileStat
-from .compUtils import printerr
+from .compFile import File, FileGroup
+from .compFilePlugin import FileStat
+from .compUtils import printerr, EnumGet
 
 
 class FileComparer:
@@ -10,11 +11,9 @@ class FileComparer:
 
     - exts {list[str]}: Which file extensions to scan (None will scan all)
     - ignore {list[str]}: Which filenames to ignore (i.e. .DS_Store) (Should be all lower case)
-    - time_var {float}: The +/- variance allowed in seconds for the default matcher function for file times
-    - size_var {int}: The +/- variance allowed in bytes for the default matcher function for file sizes
-    - min_name {int}: The minimum size of a name that will use the special name matcher function
     - combine_groups {bool}: If True, combine groups with matching hashes/keys (Default: True)
     - verbose {bool}: If True, print each duplicate that is found
+    - comparers {EnumGet: (hash,hash)->bool}: Special comparison dictionary based on StatEnum (Result of File.comparison_funcs)
     """
 
     __LIMIT = None
@@ -28,17 +27,14 @@ class FileComparer:
     """If True, combine groups with matching hashes/keys (Default: True)"""
     verbose: bool
     """If True, print each duplicate that is found"""
-    comparers: dict[FileStat, Callable[[Hashable, Hashable], bool]]
-    """Special comparison dictionary based on FileStat (Result of File.comparison_funcs)"""
+    comparers: dict[EnumGet, Callable[[Hashable, Hashable], bool]]
+    """Special comparison dictionary based on StatEnum (Result of File.comparison_funcs)"""
     
     def __init__(
         self,
         exts: list[str] = None,
         ignore: list[str] = [],
         *,
-        time_var = 0,
-        size_var = 0,
-        min_name = 3,
         combine_groups = True,
         verbose = False,
     ):
@@ -47,7 +43,7 @@ class FileComparer:
         self.combine_groups = combine_groups
         self.verbose = verbose
 
-        self.comparers = File.comparison_funcs(min_name, size_var, time_var)
+        self.comparers = {}
 
     @property
     def exts(self):
@@ -60,14 +56,13 @@ class FileComparer:
         else:
             self.__exts = [f"{'' if e[0] == '.' else '.'}{e.lower()}" for e in value]
 
-    def run(self, dirs: list[Path | str], groups: list[FileStat] = None):
+    def run(self, dirs: list[Path | str], groups: list[EnumGet]):
         """Run scan, returning a list of FileGroups, only selectings by provided groups
-        (or all in FileStat if None provided)"""
-        
-        if groups is None:
-            groups = list(FileStat)
+        (or all in StatEnums if None provided)"""
+
+        self.comparers = File.comparison_funcs()
             
-        matches: dict[FileStat, dict[Hashable, FileGroup]] = dict((g, {}) for g in groups)
+        matches: dict[EnumGet, dict[Hashable, FileGroup]] = dict((g, {}) for g in groups)
         skipped: set[str] = set()
 
         printerr(f"Scanning {len(dirs)} directories...")
@@ -86,25 +81,25 @@ class FileComparer:
             # Walk dir
             printerr(f"  Checking {dir}...")
             count = 0
-            for file in dir.rglob("*"):
+            for path in dir.rglob("*"):
                 if self.__LIMIT and count == self.__LIMIT:
                     break
 
-                if not file.is_file() or file.name.lower() in self.ignore:
+                if not path.is_file() or path.name.lower() in self.ignore:
                     continue
                 
                 # Test extensions
-                if self.exts is not None and file.suffix.lower() not in self.exts:
-                    if file.suffix:
-                        skipped.add(file.suffix.lower())
+                if self.exts is not None and path.suffix.lower() not in self.exts:
+                    if path.suffix:
+                        skipped.add(path.suffix.lower())
                     if self.verbose:
-                        printerr(f"    File skipped {file}")
+                        printerr(f"    File skipped {path}")
                     continue
                 
                 count += 1
                 try:
                     # Build group hash dicts
-                    file = File(file)
+                    file = File(path)
                     for stat, group in matches.items():
                         hash = file.hash(stat)
                         if hash is None:
@@ -149,7 +144,7 @@ class FileComparer:
         return result
     
 
-    def __is_match(self, stat: FileStat, a: Hashable, b: Hashable):
+    def __is_match(self, stat: EnumGet, a: Hashable, b: Hashable):
         """Returns TRUE if a & b match"""
         if stat in self.comparers:
             return self.comparers[stat](a, b)
@@ -171,15 +166,13 @@ class FileAutoKeeper:
         self,
         exts: list[str] = None,
         locations: list[Path | str] = None,
-        size_var: int = 0,
-        time_var: float = 0,
+        plugin_settings: dict[str] = {},
         verbose = False,
     ):
         self.exts = exts
-        self.size_var = size_var
-        self.time_var = time_var
         self.locations = locations
         self.verbose = verbose
+        self.plugin_settings = plugin_settings
 
     @property
     def exts(self):
@@ -247,12 +240,13 @@ class FileAutoKeeper:
         """Get list of all files containing the largest filesize"""
         result: list[File] = []
         size: range = None
+        var = self.plugin_settings.get("size_var", 0)
         for file in files:
             curr = file.hash(FileStat.SIZE)
             if size is None or curr > size.stop:
                 result = [file]
-                size = range(curr - self.size_var, curr + self.size_var)
-            elif (curr in size if self.size_var else curr == size.start):
+                size = range(round(curr - var), round(curr + var))
+            elif (curr in size if var else curr == size.start):
                 result.append(file)
         return result
 
@@ -260,12 +254,13 @@ class FileAutoKeeper:
         """Get list of all files containing the earliest created date"""
         result: list[File] = []
         date: range = None
+        var = self.plugin_settings.get("time_var", 0)
         for file in files:
             curr = file.hash(FileStat.CTIME)
             if date is None or curr < date.start:
                 result = [file]
-                date = range(curr - self.time_var, curr + self.time_var)
-            elif (curr in date if self.size_var else curr == date.start):
+                date = range(round(curr - var), round(curr + var))
+            elif (curr in date if var else curr == date.start):
                 result.append(file)
         return result
     
@@ -273,12 +268,13 @@ class FileAutoKeeper:
         """Get list of all files containing the latest modified date"""
         result: list[File] = []
         date: range = None
+        var = self.plugin_settings.get("time_var", 0)
         for file in files:
             curr = file.hash(FileStat.MTIME)
             if date is None or curr > date.stop:
                 result = [file]
-                date = range(curr - self.time_var, curr + self.time_var)
-            elif (curr in date if self.size_var else curr == date.start):
+                date = range(curr - var, curr + var)
+            elif (curr in date if var else curr == date.start):
                 result.append(file)
         return result
 
@@ -330,5 +326,5 @@ class FileAutoKeeper:
     algorithms = {
         FileStat.SIZE: [newest_date, pref_ext, pref_loc, min_name],
     }
-    """For each FileGroup with given FileStat, a list of algorithms to run in order.
+    """For each FileGroup with given StatEnum, a list of algorithms to run in order.
     Otherwise run in default_order."""

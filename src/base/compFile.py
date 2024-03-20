@@ -1,89 +1,54 @@
 from typing import Self, Hashable, Callable, Iterable
 from types import MappingProxyType
 import subprocess
-from datetime import datetime
 from pathlib import Path
-from .compUtils import EnumGet, get_parent, to_metric, from_metric, range_matcher, length_matcher
-
-
-class FileStat(EnumGet):
-    """File statistics used for comparison.
-    - Value is used as CSV header unless otherwise provided in CsvHdr Enum"""
-
-    NAME = "Name"
-    """Filename without extension"""
-    SIZE = "Size"
-    """File size in bytes"""
-    CTIME = "Created"
-    """File creation date/time"""
-    MTIME = "Modified"
-    """Last modification date/time"""
-
-    
+from .compFilePlugin import FilePlugin
+from .compPlugin import ComparisonPlugin
+from .compUtils import EnumGet, get_parent
 
 
 class File:
     """Representation of a file"""
+
+    plugins: list[type[ComparisonPlugin]] = [FilePlugin]
     
     def current_stats(self):
-        """Fetch stats dict from filesystem"""
-        return {
-            FileStat.NAME: self.path.stem,
-            FileStat.SIZE: self.path.stat().st_size if self.path.exists() else 0,
-            FileStat.CTIME: datetime.fromtimestamp(self.path.stat().st_ctime),
-            FileStat.MTIME: datetime.fromtimestamp(self.path.stat().st_mtime),
-        }
+        """Combined stats of all plugins"""
+        stats: dict[EnumGet] = {}
+        for extension in self.extensions:
+            stats.update(extension.current_stats())
+        return stats
     
-    def hash(self, stat: FileStat) -> Hashable | None:
-        """Returns a hash corresponding to the provided stat on the File"""
-        if stat == FileStat.NAME:
-            return self.path.stem.lower()
-        elif stat == FileStat.SIZE:
-            return self.stats[stat]
-        elif stat == FileStat.CTIME:
-            return round(self.stats[stat].timestamp())
-        elif stat == FileStat.MTIME:
-            return round(self.stats[stat].timestamp())
+    def hash(self, stat: EnumGet) -> Hashable | None:
+        """Get hash from the cooresponding plugin"""
+        for extension in self.extensions:
+            if type(stat) is extension.STATS:
+                return extension.hash(stat, self.stats[stat])
         return None
 
-    @staticmethod
-    def comparison_funcs(min_name=3, size_var=0, time_var=0) -> dict[FileStat, Callable[[Hashable, Hashable], bool]]:
-        """Comparison functions for FileStats, to override default hash equality function (==)"""
-        return {
-            FileStat.NAME: length_matcher(min_name),
-            FileStat.SIZE: range_matcher(size_var),
-            FileStat.CTIME: range_matcher(time_var),
-            FileStat.MTIME: range_matcher(time_var),
-        }
+    @classmethod
+    def comparison_funcs(cls) -> dict[EnumGet, Callable[[Hashable, Hashable], bool]]:
+        """Combined comparison functions of all plugins"""
+        funcs = {}
+        for plugin in cls.plugins:
+            funcs.update(plugin.comparison_funcs())
+        return funcs
 
-    def to_str(self, stat: FileStat) -> str | None:
-        """Convert value of stat to a string for display/CSV"""
-        if stat == FileStat.NAME:
-            return self.path.stem
-        elif stat == FileStat.SIZE:
-            return to_metric(self.stats[stat], "B")
-        elif stat == FileStat.CTIME:
-            return self.stats[stat].strftime(self._DATE_FMT)
-        elif stat == FileStat.MTIME:
-            return self.stats[stat].strftime(self._DATE_FMT)
-        return str(self.stats[stat])
-    
-    def from_str(self, stat: FileStat, value: str):
-        """Convert result of to_str back into stat type"""
-        if stat == FileStat.NAME:
-            return value
-        elif stat == FileStat.SIZE:
-            return from_metric(value)
-        elif stat == FileStat.CTIME:
-            return self.__to_dt(value)
-        elif stat == FileStat.MTIME:
-            return self.__to_dt(value)
+    def to_str(self, stat: EnumGet) -> str | None:
+        """Get string value from the cooresponding plugin"""
+        for extension in self.extensions:
+            if type(stat) is extension.STATS:
+                return extension.to_str(stat, self.stats[stat])
         return None
+    
+    def from_str(self, stat: EnumGet, value: str):
+        """Convert string to value using the cooresponding plugin"""
+        for extension in self.extensions:
+            if type(stat) is extension.STATS:
+                return extension.from_str(stat, value)
+        return value
 
     # # #
-
-    _DATE_FMT = "%m-%d-%Y %H:%M"
-    """Default datetime format for reading/writing to CSV"""
     
     roots: list[Path] = []
     """List of root paths, to remove for 'short' path formatting"""
@@ -94,7 +59,7 @@ class File:
         return self.__path
     
     @property
-    def stats(self):
+    def stats(self) -> MappingProxyType[EnumGet]:
         """Stats of this file (update w/ update_stats())"""
         return self.__stats
     
@@ -120,20 +85,26 @@ class File:
     def __init__(
         self,
         path: str | Path | Self,
-        stats: dict[FileStat] = {},
+        stats: dict[EnumGet] = {},
         keep = False,
     ):
         if type(path) is self.__class__:
             self.__dict__.update(path.__dict__)
         else:
             self.__path = Path(path).resolve()
+
+        self.extensions: list[ComparisonPlugin] = []
+        for plugin in self.plugins:
+            try:
+                self.extensions.append(plugin(self.path))
+            except ComparisonPlugin.InvalidFile:
+                pass
         
         self.keep = bool(keep)
         self.__stats = {}
         self.update_stats(stats)
-        self.update_stats()
 
-    def update_stats(self, stats: dict[FileStat, str] = None):
+    def update_stats(self, stats: dict[EnumGet, str] = None):
         """Update file stats from CSV if dict provided, otherwise fetch from OS."""
         result = dict(self.__stats)
         if stats:
@@ -164,34 +135,19 @@ class File:
     def __str__(self) -> str:
         return (
             f"{'*' if self.keep else '-'} {self.short} | " +
-            " | ".join(self.to_str(stat) for stat in FileStat)
+            " | ".join(self.to_str(stat) for stat in self.stats)
         )
     
     def __repr__(self) -> str:
         return f"{'*' if self.keep else 'X'}{self.path}"
-    
-    @classmethod
-    def __to_dt(cls, val):
-        """Convert input to datetime object"""
-        if val is None or val == "":
-            return datetime.max
-        if type(val) is str:
-            try:
-                val = float(val)
-            except ValueError:
-                try:
-                    return datetime.strptime(val, cls._DATE_FMT)
-                except:
-                    pass
-        if type(val) in (int, float):
-            return datetime.fromtimestamp(val)
-        return datetime.max
 
 
 class FileGroup(list[File]):
     """Creates a List object w/ additional 'stat' field"""
-    def __init__(self, stat: FileStat, itr: Iterable = None):
-        self.stat = FileStat(stat)
+    def __init__(self, stat: EnumGet, itr: Iterable = None):
+        if not isinstance(stat, EnumGet):
+            raise TypeError("FileGroup requires stat to be an Enum type.", type(stat), stat)
+        self.stat = stat
         super().__init__(self) if itr is None else super().__init__(self, itr)
 
     def only(self, keep: bool):
@@ -212,7 +168,7 @@ class FileGroup(list[File]):
         return f'{self.stat.name}:\n  {files}'
     
     @classmethod
-    def append_to(Cls, dictionary: dict[Hashable,Self], stat: FileStat, key: Hashable, value: File):
+    def append_to(Cls, dictionary: dict[Hashable,Self], stat: EnumGet, key: Hashable, value: File):
         """Append value to exisiting dict, otherwise start new list"""
         if key not in dictionary:
             dictionary[key] = Cls(stat)

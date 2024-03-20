@@ -1,11 +1,13 @@
 from json import dumps
 from pathlib import Path
-from .base.compFile import File, FileStat, FileGroup
-from .base.compCsv import CSVParser, CsvStat
+from .base.compFile import File, FileGroup
+from .base.compCsv import CSVParser
 from .base.compAlgos import FileComparer, FileAutoKeeper
 from .base.compSanit import check_data, clean_data
 from .base.compIO import delete_files, move_files, recover_files
-from .base.compUtils import get_idx, printerr
+from .base.compUtils import get_idx, printerr, EnumGet
+from .base.compPlugin import ComparisonPlugin
+from .base.compFilePlugin import FilePlugin
 
 
 class ComparisonController:
@@ -13,9 +15,10 @@ class ComparisonController:
     Find similar files, delete duplicates and import/export CSVs.
     
     To extend comparison stats:
-    1) Add a new stat key to FileStat Enum `compFile.py`
-    2) Add to File class props: current_stats, hash, from_str, [to_str, comparison_funcs] `compFile.py`
-    3) (Optional) Add to FileAutoKeeper.algorithms to customize AutoKeep behavior `compAlgos.py`
+    1) Create plugin classes off of ComparisonPlugin (See compPlugin.py for more info)
+    2) Add to plugins property on creation, or use register_plugin() method.
+    3) Add Stats to group_by & headers (or leave them unset) to ensure they're used.
+    4) Add plugin_settings on creation or via register_plugin() method.
     """
 
     def __init__(
@@ -24,45 +27,39 @@ class ComparisonController:
         exts: list[str] = None,
         ignore: list[str] = [],
         *,
-        group_by: list[FileStat | str] = None,
-        size_var: int = 0,
-        time_var: float = 0,
-        min_name: int = 3,
-        headers: list[CsvStat | FileStat] = None,
+        group_by: list[EnumGet | str] = None,
+        headers: list[EnumGet] = None,
         verbose = False,
+        plugins: list[ComparisonPlugin] = [],
+        **plugin_settings,
     ) -> None:
-        """Create new ImageScanner tool
+        """
+        Create new FileComparison tool
         - roots are a list of dirs that will be scanned for files (In order of location preference for auto-keeping)
         - exts in a list of file extensions to scan, in order of preference (most > least)
         - ignore in a list of filenames to skip scanning (i.e. .DS_Store)
-        - group_by is a list of FileStats to create FileGroups of
-        - time/size_vars are the +/- variance allowed in seconds/bytes for matching files
-        - min_name is the minimum size of a name that will use the special name matcher function
+        - group_by is a list of StatEnums to create FileGroups of
         - headers is the header for the CSV file
         - verbose will print each duplicate that is found
+        - plugins should include any ComparisonPlugins you wish to use (FilePlugin is always included)
+        - plugin_settings allows additional keyword args to be passed through to ComparisonPlugins
+            - Default Settings:
+                - time_var {float}: The +/- variance allowed in seconds for matching files times.
+                - size_var {int}: The +/- variance allowed in bytes for matching file sizes.
+                - min_name {int}: The shortest filename length that will use the alternative matcher.
+            - Plus settings to be passed to custom plugins
         """
         self.roots = [Path(r) for r in roots]
         self.verbose = verbose
-        self.group_by: list[FileStat] = (
-            list(FileStat) if group_by is None else
-            [FileStat.get(g) for g in group_by]
-        )
+        self.group_by = group_by
+        self.plugin_settings = plugin_settings
+        File.plugins = [FilePlugin] + plugins
 
-        self.comparer = FileComparer(
-            exts,
-            ignore,
-            time_var=time_var,
-            size_var=size_var,
-            min_name=min_name,
-            verbose=verbose
-        )
-        self.keeper = FileAutoKeeper(
-            exts,
-            roots,
-            size_var,
-            time_var,
-            verbose,
-        )
+        for plugin in File.plugins:
+            plugin.settings = plugin_settings
+
+        self.comparer = FileComparer(exts, ignore, verbose=verbose)
+        self.keeper = FileAutoKeeper(exts, roots, plugin_settings, verbose)
 
         if verbose:
             printerr(f"Setup ComparisonController with options: {dumps(self.__dict__, default=str, indent=2)}")
@@ -73,19 +70,19 @@ class ComparisonController:
 
     def scan(self, dirs: list[str | Path] = None):
         """Recursively scan all dirs and store similar files"""
-        self._data = self.comparer.run(self.__roots(dirs), self.group_by)
+        self._data = self.comparer.run(self.__roots(dirs), self._group_by())
         return self._data
     
     
     def load_csv(self, csv_path: str | Path):
         """Load file data from CSV"""
-        self._data = self._csv.read(csv_path)
+        self._data = self._csv.read(csv_path, [p.STATS for p in File.plugins])
         return self._data
     
     
     def save_csv(self, csv_path: str | Path):
         """Save file data to CSV"""
-        self._csv.write(csv_path, self._data)
+        self._csv.write(csv_path, self._data, [p.STATS for p in File.plugins])
         
 
     def view_all(self, only_deleted = False):
@@ -105,7 +102,7 @@ class ComparisonController:
         self.clean(silent=True)
 
         for files in self._data:
-            if files.stat in self.group_by:
+            if files.stat in self._group_by():
                 self.keeper.run(files)
 
     
@@ -193,7 +190,28 @@ class ComparisonController:
         to_delete = self.integrity()
         return f"{cmd} {' '.join(path.quoted for path in to_delete)}"
 
-    
+
+    def register_plugin(self, plugin: type[ComparisonPlugin] = None, **plugin_settings):
+        """Add a new plugin and/or settings to the engine
+        raises TypeError if invalid type or ValueError if plugin is duplicate."""
+
+        if plugin is not None:
+            if not issubclass(plugin, ComparisonPlugin):
+                raise TypeError("Plugin must descend from ComparisonPlugin", plugin)
+            if plugin in File.plugins:
+                raise ValueError("Plugin has alredy been registered", plugin)
+            
+            plugin.settings = self.plugin_settings
+            File.plugins.append(plugin)
+
+        self.plugin_settings.update(plugin_settings)
+
+
+    def deregister_plugin(plugin: type[ComparisonPlugin]):
+        """Remove a plugin that was previously registered."""
+        File.plugins.remove(plugin)
+
+
     def __str__(self):
         string = ""
         for i, files in enumerate(self._data):
@@ -210,3 +228,20 @@ class ComparisonController:
         elif self.roots:
             File.roots = self.roots.copy()
         return File.roots
+    
+    def _group_by(self):
+        """Get actual value of GroupBy (As Stat list)"""
+        group_by: list[EnumGet] = []
+
+        if self.group_by is None:
+            for plugin in File.plugins:
+                if plugin.GROUP_BY is None:
+                    group_by.extend(plugin.STATS)
+                else:
+                    group_by.extend(plugin.GROUP_BY)
+            return group_by
+        
+        stat_enums: list[EnumGet] = [p.STATS for p in File.plugins]
+        for stat in self.group_by:
+            group_by.append(EnumGet.get(stat, stat_enums))
+        return group_by

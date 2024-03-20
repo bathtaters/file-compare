@@ -91,7 +91,7 @@ def to_metric(num: int | float, suffix = "", deicmals = 2):
     s = round(num / p, deicmals)
     return f"{s} {_METRIC_PREFIX[i]}{suffix}"
 
-_METRIC_RE = compile(r"^((?:\d+\,)*\d*\.?\d+)\s?("+"|".join(_METRIC_PREFIX)+")", IGNORECASE)
+_METRIC_RE = compile(r"^((?:\d+\,)*\d*\.?\d+)\s?("+"|".join(_METRIC_PREFIX[1:])+"|)", IGNORECASE)
 def from_metric(num_str: str):
     """Convert a suffixed numeric string back into a number"""
     try:
@@ -121,15 +121,58 @@ def range_matcher(variance) -> Callable[[Hashable, Hashable], bool]:
         return lambda a, b: a == b
     return lambda a, b : b >= a - variance and b <= a + variance
 
+def sortnum(a, b, invert=False):
+    """
+    Sort two numbers based on greater-than operation.
+    - Assumes the numbers are not equal (Do this check before calling).
+    - invert=False: returns +1 if A is smaller, -1 if larger.
+    - invert=True: returns -1 if A is smaller, +1 if larger.
+    """
+    if a is None:
+        return -1
+    elif b is None:
+        return 1
+    return 1 if a > b == invert else -1
+
+def sortlist(a, b, prefs: list, valtype: str = None):
+    """
+    Sort two values based on a preference list
+    - Assumes the values are not equal (Do this check before calling).
+    - prefs: List of preferences in order of Most->Least preferred.
+    - Returns positive number if A is more preferred, negative if less.
+    - If valtype is not none, print out missing values.
+    """
+    if a in prefs:
+        if b in prefs:
+            return prefs.index(a) - prefs.index(b)
+        else:
+            if valtype and b is not None:
+                print(f"Unknown {valtype}: {b}")
+            return 1
+    elif b in prefs:
+        if valtype and a is not None:
+            print(f"Unknown {valtype}: {a}")
+        return -1
+    return sortnum(a, b)
+
 
 class EnumGet(Enum):
     """Extend Enum class with getter method,
     expects uppercase member names and capitalized values"""
 
     @classmethod
-    def get(cls, val: Self | str) -> Self | None:
-        """Get matching val (Check uppercase names/capitalized values)
-        raises a ValueError if not found."""
+    def get(cls, val: Self | str, other_enums: list[type[Self]] = []) -> Self | None:
+        """
+        Get matching Enum instance (Check uppercase names/capitalized values).
+        - Will check each Enum in other_enums then check this class.
+        - raises a ValueError if not found.
+        """
+        for enum in other_enums:
+            try:
+                return enum.get(val)
+            except ValueError:
+                pass
+
         if type(val) is cls:
             return val
         try:
@@ -137,3 +180,38 @@ class EnumGet(Enum):
         except KeyError:
             pass
         return cls(val.capitalize())
+
+
+class RichCompare:
+    """
+    Uses a method called '_cmp' to generate rich comparison methods.
+
+    IMPORTANT! Must implement _cmp(self, other) -> int
+    """
+    def _cmp(self: Self, other: Self) -> int:
+        """
+        Accept another instance of this class,
+        check how they should be ordered,
+        - If `self` and `other` are equal return 0.
+        - If `self` comes before `other` return a positive number,
+        - If `self` comes after `other` return a negative number.
+        """
+        raise NotImplementedError("_cmp function must be implemented")
+    
+    def __lt__(self, other):
+        return self._cmp(other) < 0
+
+    def __le__(self, other):
+        return self._cmp(other) <= 0
+
+    def __eq__(self, other):
+        return self._cmp(other) == 0
+
+    def __ne__(self, other):
+        return self._cmp(other) != 0
+
+    def __ge__(self, other):
+        return self._cmp(other) >= 0
+
+    def __gt__(self, other):
+        return self._cmp(other) > 0

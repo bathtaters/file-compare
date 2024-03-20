@@ -1,5 +1,5 @@
-# File Scanner v1.0.0
-#### by bathtaters
+# File Scanner
+v1.0.0 – by bathtaters
 
 ```bash
 Usage: python main.py [-m:mode] [-option:value] [csv path] paths...
@@ -30,6 +30,3 @@ Options for scan & auto modes:
 
 If no CSV provided, uses './results.csv'
 ```
-
-### TODO:
- - Add Video and Image options
