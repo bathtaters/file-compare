@@ -28,11 +28,6 @@ class VideoPlugin(ComparisonPlugin):
     )
     """Ordered list of video extensions to use"""
 
-    threshold = 100
-    """A percentage of how close the hashes should match (100 = identical)"""
-
-    precision = 64
-    """The size of the hash (This is hard-locked by the hashing library)"""
 
     def current_stats(self):
         """For each Stat, get its value from the file."""
@@ -55,13 +50,11 @@ class VideoPlugin(ComparisonPlugin):
         return value
 
     @classmethod
-    def comparison_funcs(cls, threshold = None, **_):
+    def comparison_funcs(cls):
         """Comparison functions for each Stat. { Stat: (hash1, hash2) -> bool} }
         Optional to override default hash equality function (==)."""
 
-        if threshold is None:
-            threshold = cls.threshold
-        
+        threshold = cls.settings.get("threshold", 100) # 100 = exact match
         return {
             VideoStats.VID_HASH: lambda a,b,t=threshold: a.matches(b, t),
         }

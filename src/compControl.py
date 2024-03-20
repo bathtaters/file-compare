@@ -28,9 +28,6 @@ class ComparisonController:
         ignore: list[str] = [],
         *,
         group_by: list[EnumGet | str] = None,
-        size_var: int = 0,
-        time_var: float = 0,
-        min_name: int = 3,
         headers: list[EnumGet] = None,
         verbose = False,
         plugins: list[ComparisonPlugin] = [],
@@ -42,35 +39,27 @@ class ComparisonController:
         - exts in a list of file extensions to scan, in order of preference (most > least)
         - ignore in a list of filenames to skip scanning (i.e. .DS_Store)
         - group_by is a list of StatEnums to create FileGroups of
-        - time/size_vars are the +/- variance allowed in seconds/bytes for matching files
-        - min_name is the minimum size of a name that will use the special name matcher function
         - headers is the header for the CSV file
         - verbose will print each duplicate that is found
         - plugins should include any ComparisonPlugins you wish to use (FilePlugin is always included)
         - plugin_settings allows additional keyword args to be passed through to ComparisonPlugins
+            - Default Settings:
+                - time_var {float}: The +/- variance allowed in seconds for matching files times.
+                - size_var {int}: The +/- variance allowed in bytes for matching file sizes.
+                - min_name {int}: The shortest filename length that will use the alternative matcher.
+            - Plus settings to be passed to custom plugins
         """
         self.roots = [Path(r) for r in roots]
         self.verbose = verbose
         self.group_by = group_by
+        self.plugin_settings = plugin_settings
         File.plugins = [FilePlugin] + plugins
 
-        self.comparer = FileComparer(
-            exts,
-            ignore,
-            verbose=verbose,
-            time_var=time_var,
-            size_var=size_var,
-            min_name=min_name,
-            **plugin_settings,
-        )
-        self.keeper = FileAutoKeeper(
-            exts,
-            roots,
-            verbose,
-            size_var=size_var,
-            time_var=time_var,
-            **plugin_settings,
-        )
+        for plugin in File.plugins:
+            plugin.settings = plugin_settings
+
+        self.comparer = FileComparer(exts, ignore, verbose=verbose)
+        self.keeper = FileAutoKeeper(exts, roots, plugin_settings, verbose)
 
         if verbose:
             printerr(f"Setup ComparisonController with options: {dumps(self.__dict__, default=str, indent=2)}")
@@ -211,10 +200,11 @@ class ComparisonController:
                 raise TypeError("Plugin must descend from ComparisonPlugin", plugin)
             if plugin in File.plugins:
                 raise ValueError("Plugin has alredy been registered", plugin)
+            
+            plugin.settings = self.plugin_settings
             File.plugins.append(plugin)
 
-        self.comparer.plugin_settings.update(plugin_settings)
-        self.keeper.plugin_settings.update(plugin_settings)
+        self.plugin_settings.update(plugin_settings)
 
 
     def deregister_plugin(plugin: type[ComparisonPlugin]):

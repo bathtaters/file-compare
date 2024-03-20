@@ -51,11 +51,13 @@ options = {
     # Default file extensions (In order of preference), None will search all
     "exts": None,
     # Default fields to create groups with (None will use defaults from plugins)
-    "group_by": None, # ('name','size','ctime','mtime','vid_hash','vid_streams','vid_dur'),
+    "group_by": None, # ('name','size','ctime','mtime','img_hash','vid_hash','vid_streams','vid_dur'),
     # Default variance (+/-) for size stat within groups
     "size_var": 0,
     # Default variance (+/-) for create/modify times stat within groups
     "time_var": 0,
+    # Default shortest filename length that will use the alternative matcher.
+    "min_name": 3,
     # Ignore these files
     "ignore": ('.DS_Store','Thumbs.db'),
     # If True, prints each duplicate found to stderr
@@ -65,7 +67,9 @@ options = {
     # List ComparisonPlugins to use here
     "plugins": [ImagePlugin, VideoPlugin],
     # Threshold for perceptual hash comparisons
-    "threshold": 95,
+    "threshold": 100,
+    # Size for perceptual hash comparisons
+    "precision": 16,
 }
 
 

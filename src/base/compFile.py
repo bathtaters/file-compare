@@ -27,11 +27,11 @@ class File:
         return None
 
     @classmethod
-    def comparison_funcs(cls, plugin_settings: dict) -> dict[EnumGet, Callable[[Hashable, Hashable], bool]]:
+    def comparison_funcs(cls) -> dict[EnumGet, Callable[[Hashable, Hashable], bool]]:
         """Combined comparison functions of all plugins"""
         funcs = {}
         for plugin in cls.plugins:
-            funcs.update(plugin.comparison_funcs(**plugin_settings))
+            funcs.update(plugin.comparison_funcs())
         return funcs
 
     def to_str(self, stat: EnumGet) -> str | None:

@@ -11,11 +11,9 @@ class FileComparer:
 
     - exts {list[str]}: Which file extensions to scan (None will scan all)
     - ignore {list[str]}: Which filenames to ignore (i.e. .DS_Store) (Should be all lower case)
-    - time_var {float}: The +/- variance allowed in seconds for the default matcher function for file times
-    - size_var {int}: The +/- variance allowed in bytes for the default matcher function for file sizes
-    - min_name {int}: The minimum size of a name that will use the special name matcher function
     - combine_groups {bool}: If True, combine groups with matching hashes/keys (Default: True)
     - verbose {bool}: If True, print each duplicate that is found
+    - comparers {EnumGet: (hash,hash)->bool}: Special comparison dictionary based on StatEnum (Result of File.comparison_funcs)
     """
 
     __LIMIT = None
@@ -31,8 +29,6 @@ class FileComparer:
     """If True, print each duplicate that is found"""
     comparers: dict[EnumGet, Callable[[Hashable, Hashable], bool]]
     """Special comparison dictionary based on StatEnum (Result of File.comparison_funcs)"""
-    plugin_settings: dict
-    """Additional settings to pass to plugin comparison functions"""
     
     def __init__(
         self,
@@ -41,13 +37,11 @@ class FileComparer:
         *,
         combine_groups = True,
         verbose = False,
-        **plugin_settings,
     ):
         self.exts = exts
         self.ignore = [fn.lower() for fn in ignore]
         self.combine_groups = combine_groups
         self.verbose = verbose
-        self.plugin_settings = plugin_settings
 
         self.comparers = {}
 
@@ -66,7 +60,7 @@ class FileComparer:
         """Run scan, returning a list of FileGroups, only selectings by provided groups
         (or all in StatEnums if None provided)"""
 
-        self.comparers = File.comparison_funcs(self.plugin_settings)
+        self.comparers = File.comparison_funcs()
             
         matches: dict[EnumGet, dict[Hashable, FileGroup]] = dict((g, {}) for g in groups)
         skipped: set[str] = set()
@@ -172,15 +166,10 @@ class FileAutoKeeper:
         self,
         exts: list[str] = None,
         locations: list[Path | str] = None,
+        plugin_settings: dict[str] = {},
         verbose = False,
-        *,
-        size_var: int = 0,
-        time_var: float = 0,
-        **plugin_settings,
     ):
         self.exts = exts
-        self.size_var = size_var
-        self.time_var = time_var
         self.locations = locations
         self.verbose = verbose
         self.plugin_settings = plugin_settings
@@ -251,12 +240,13 @@ class FileAutoKeeper:
         """Get list of all files containing the largest filesize"""
         result: list[File] = []
         size: range = None
+        var = self.plugin_settings.get("size_var", 0)
         for file in files:
             curr = file.hash(FileStat.SIZE)
             if size is None or curr > size.stop:
                 result = [file]
-                size = range(round(curr) - self.size_var, round(curr) + self.size_var)
-            elif (curr in size if self.size_var else curr == size.start):
+                size = range(round(curr - var), round(curr + var))
+            elif (curr in size if var else curr == size.start):
                 result.append(file)
         return result
 
@@ -264,12 +254,13 @@ class FileAutoKeeper:
         """Get list of all files containing the earliest created date"""
         result: list[File] = []
         date: range = None
+        var = self.plugin_settings.get("time_var", 0)
         for file in files:
             curr = file.hash(FileStat.CTIME)
             if date is None or curr < date.start:
                 result = [file]
-                date = range(curr - self.time_var, curr + self.time_var)
-            elif (curr in date if self.size_var else curr == date.start):
+                date = range(round(curr - var), round(curr + var))
+            elif (curr in date if var else curr == date.start):
                 result.append(file)
         return result
     
@@ -277,12 +268,13 @@ class FileAutoKeeper:
         """Get list of all files containing the latest modified date"""
         result: list[File] = []
         date: range = None
+        var = self.plugin_settings.get("time_var", 0)
         for file in files:
             curr = file.hash(FileStat.MTIME)
             if date is None or curr > date.stop:
                 result = [file]
-                date = range(curr - self.time_var, curr + self.time_var)
-            elif (curr in date if self.size_var else curr == date.start):
+                date = range(curr - var, curr + var)
+            elif (curr in date if var else curr == date.start):
                 result.append(file)
         return result
 

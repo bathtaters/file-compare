@@ -28,20 +28,18 @@ class ImagePlugin(ComparisonPlugin):
     )
     """Ordered list of image extensions to use"""
 
-    threshold = 100
-    """A percentage of how close the hashes should match (100 = identical)"""
-
-    precision = 16
-    """The size of the hash (This is hard-locked by the hashing library)"""
+    _DEF_PRECISION = 8
+    """Default hash size (_DEF_PRECIISON ^ 2 = actual size of hash)"""
 
     def current_stats(self):
         """For each Stat, get its value from the file."""
         data: dict[ImageStats] = {}
+        precision = self.settings.get("precision", self._DEF_PRECISION)
         with Image.open(self.path) as img:
             data[ImageStats.IMG_TYPE] = img.format
             data[ImageStats.IMG_PXL] = img.mode
             data[ImageStats.IMG_SIZE] = img.size
-            data[ImageStats.IMG_HASH] = Hasher.from_file(img, hash_size=self.precision)
+            data[ImageStats.IMG_HASH] = Hasher.from_file(img, hash_size=precision)
             data[ImageStats.IMG_FRAMES] = getattr(img, "n_frames", 1)
         return data
     
@@ -53,13 +51,11 @@ class ImagePlugin(ComparisonPlugin):
         return value
 
     @classmethod
-    def comparison_funcs(cls, threshold = None, **_):
+    def comparison_funcs(cls):
         """Comparison functions for each Stat. { Stat: (hash1, hash2) -> bool} }
         Optional to override default hash equality function (==)."""
-        
-        if threshold is None:
-            threshold = cls.threshold
-        
+
+        threshold = cls.settings.get("threshold", 100) # 100 = exact match
         return {
             ImageStats.IMG_HASH: lambda a,b,t=threshold: a.matches(b, t),
         }

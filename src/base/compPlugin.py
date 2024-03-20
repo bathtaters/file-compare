@@ -33,6 +33,9 @@ class ComparisonPlugin(Generic[Stat]):
     GROUP_BY: list[Stat] | None = None
     """Recommended stats to use for file-grouping (Default: None => all STATS)"""
 
+    settings: dict[str] = {}
+    """plugin_settings passed in from ComparisonController"""
+
     path: Path
     """Underlying file to run comparison on."""
 
@@ -57,8 +60,8 @@ class ComparisonPlugin(Generic[Stat]):
         """Return a hash corresponding to the provided Stat on the File"""
         raise NotImplementedError("hash")
 
-    @staticmethod
-    def comparison_funcs(**plugin_settings) -> dict[Stat, Callable[[Hashable, Hashable], bool]]:
+    @classmethod
+    def comparison_funcs(_) -> dict[Stat, Callable[[Hashable, Hashable], bool]]:
         """Comparison functions for each Stat.
         Optional to override default hash equality function (==)."""
         return {}

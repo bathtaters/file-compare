@@ -42,14 +42,14 @@ class FilePlugin(ComparisonPlugin[FileStat]):
             return round(value.timestamp())
         return value
 
-    @staticmethod
-    def comparison_funcs(min_name=3, size_var=0, time_var=0, **_) -> dict[FileStat, Callable[[Hashable, Hashable], bool]]:
+    @classmethod
+    def comparison_funcs(cls) -> dict[FileStat, Callable[[Hashable, Hashable], bool]]:
         """Comparison functions for FileStats, to override default hash equality function (==)"""
         return {
-            FileStat.NAME: length_matcher(min_name),
-            FileStat.SIZE: range_matcher(size_var),
-            FileStat.CTIME: range_matcher(time_var),
-            FileStat.MTIME: range_matcher(time_var),
+            FileStat.NAME: length_matcher(cls.settings.get("min_name", 3)),
+            FileStat.SIZE: range_matcher(cls.settings.get("size_var", 0)),
+            FileStat.CTIME: range_matcher(cls.settings.get("time_var", 0)),
+            FileStat.MTIME: range_matcher(cls.settings.get("time_var", 0)),
         }
 
     def to_str(self, stat: FileStat, value) -> str | None:
