@@ -1,7 +1,7 @@
 from typing import Self
 from pathlib import Path
 from videohash import VideoHash
-from imagehash import ImageHash, hex_to_hash, average_hash
+from imagehash import ImageHash, hex_to_hash, average_hash, NDArray
 from PIL import Image
 from numpy import count_nonzero
 
@@ -9,13 +9,19 @@ from numpy import count_nonzero
 class Hasher(ImageHash):
     """Calculate perceptual hash of media file"""
 
+    hash: NDArray
+    """Raw hash array"""
+
     @classmethod
-    def from_file(cls, filepath: str | Path, is_video=False, hash_size=64):
+    def from_file(cls, filepath: str | Path | Image.Image, is_video=False, hash_size=64):
         """
         Hash the given file, if is_video if False will be treated an image.
+        Also accepts an instance of Image if you already have one open.
         If is_video is True, hash_size will be forced to be 64.
         """
-        if is_video:
+        if isinstance(filepath, Image.Image):
+            return cls(average_hash(filepath, hash_size).hash)
+        elif is_video:
             vhash = VideoHash(Path(filepath).as_posix()).hash_hex[2:]
             return cls(hex_to_hash(vhash).hash)
         with Image.open(filepath) as img:
