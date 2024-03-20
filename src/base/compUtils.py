@@ -91,7 +91,7 @@ def to_metric(num: int | float, suffix = "", deicmals = 2):
     s = round(num / p, deicmals)
     return f"{s} {_METRIC_PREFIX[i]}{suffix}"
 
-_METRIC_RE = compile(r"^((?:\d+\,)*\d*\.?\d+)\s?("+"|".join(_METRIC_PREFIX)+")", IGNORECASE)
+_METRIC_RE = compile(r"^((?:\d+\,)*\d*\.?\d+)\s?("+"|".join(_METRIC_PREFIX[1:])+"|)", IGNORECASE)
 def from_metric(num_str: str):
     """Convert a suffixed numeric string back into a number"""
     try:
