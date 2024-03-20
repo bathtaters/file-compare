@@ -40,7 +40,8 @@ If no CSV provided, uses '$CSV_PATH'
 ### --- BASE OPTIONS --- ###
 
 # Import Plugins
-from plugins.videoPlugin import VideoPlugin
+from src.plugins.imagePlugin import ImagePlugin
+from src.plugins.videoPlugin import VideoPlugin
 
 # Default CSV file
 DEFAULT_CSV = "./results.csv"
@@ -62,7 +63,7 @@ options = {
 
     ### PLUGINS ###
     # List ComparisonPlugins to use here
-    "plugins": [VideoPlugin],
+    "plugins": [ImagePlugin, VideoPlugin],
     # Threshold for perceptual hash comparisons
     "threshold": 95,
 }
