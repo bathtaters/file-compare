@@ -1,4 +1,4 @@
-from .videoFile import VideoPlugin
+from .videoFile import VideoFile
 from .hasher import Hasher
 from ..base.compPlugin import ComparisonPlugin, EnumGet
 
@@ -36,7 +36,7 @@ class VideoPlugin(ComparisonPlugin):
 
     def current_stats(self):
         """For each Stat, get its value from the file."""
-        video = VideoPlugin(self.path)
+        video = VideoFile(self.path)
         return {
             VideoStats.VID_TYPE: video.container,
             VideoStats.VID_BITRATE: video.bitrate,
@@ -51,7 +51,7 @@ class VideoPlugin(ComparisonPlugin):
         if stat == VideoStats.VID_TYPE:
             return value.lower()
         if stat == VideoStats.VID_STREAMS:
-            return VideoPlugin.to_json(value)
+            return VideoFile.to_json(value)
         return value
 
     @classmethod
@@ -64,14 +64,13 @@ class VideoPlugin(ComparisonPlugin):
         
         return {
             VideoStats.VID_HASH: lambda a,b,t=threshold: a.matches(b, t),
-            VideoStats.VID_STREAMS: lambda a,b: a == b,
         }
 
     def to_str(self, stat: VideoStats, value):
         """Convert value of stat to a string for display/CSV.
         Optional to override default to_str function (str())."""
         if stat == VideoStats.VID_STREAMS:
-            return VideoPlugin.to_json(value)
+            return VideoFile.to_json(value)
         return str(value)
     
     def from_str(self, stat: VideoStats, value: str):
@@ -83,6 +82,6 @@ class VideoPlugin(ComparisonPlugin):
         if stat == VideoStats.VID_HASH:
             return Hasher.from_hex(value)
         if stat == VideoStats.VID_STREAMS:
-            return VideoPlugin.to_streams(value)
+            return VideoFile.to_streams(value)
         return str(value)
 

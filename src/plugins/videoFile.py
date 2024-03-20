@@ -5,7 +5,7 @@ from .ffstream import FFStream, to_metric
 from .hasher import Hasher
 
 
-class VideoPlugin:
+class VideoFile:
     """Analyzer for video file"""
 
     __SKIP_HASH = False

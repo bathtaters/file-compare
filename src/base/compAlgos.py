@@ -87,25 +87,25 @@ class FileComparer:
             # Walk dir
             printerr(f"  Checking {dir}...")
             count = 0
-            for file in dir.rglob("*"):
+            for path in dir.rglob("*"):
                 if self.__LIMIT and count == self.__LIMIT:
                     break
 
-                if not file.is_file() or file.name.lower() in self.ignore:
+                if not path.is_file() or path.name.lower() in self.ignore:
                     continue
                 
                 # Test extensions
-                if self.exts is not None and file.suffix.lower() not in self.exts:
-                    if file.suffix:
-                        skipped.add(file.suffix.lower())
+                if self.exts is not None and path.suffix.lower() not in self.exts:
+                    if path.suffix:
+                        skipped.add(path.suffix.lower())
                     if self.verbose:
-                        printerr(f"    File skipped {file}")
+                        printerr(f"    File skipped {path}")
                     continue
                 
                 count += 1
                 try:
                     # Build group hash dicts
-                    file = File(file)
+                    file = File(path)
                     for stat, group in matches.items():
                         hash = file.hash(stat)
                         if hash is None:
