@@ -255,7 +255,7 @@ class FileAutoKeeper:
             curr = file.hash(FileStat.SIZE)
             if size is None or curr > size.stop:
                 result = [file]
-                size = range(curr - self.size_var, curr + self.size_var)
+                size = range(round(curr) - self.size_var, round(curr) + self.size_var)
             elif (curr in size if self.size_var else curr == size.start):
                 result.append(file)
         return result
