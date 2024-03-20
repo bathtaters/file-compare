@@ -23,7 +23,7 @@ class FFStream(RichCompare):
         self.data = stream_data
     
     @property
-    def type(self):
+    def media(self):
         return self.data.get("codec_type")
     
     @property
@@ -63,9 +63,9 @@ class FFStream(RichCompare):
     
     def json(self):
         """Stream data as simple dict"""
-        if self.type == "video":
+        if self.media == "video":
             return {
-                "type": self.type,
+                "media": self.media,
                 "codec": self.codec,
                 "bitrate": self.bitrate,
                 "duration": self.duration,
@@ -75,7 +75,7 @@ class FFStream(RichCompare):
                 "fps": self.fps,
             }
         return {
-            "type": self.type,
+            "media": self.media,
             "codec": self.codec,
             "bitrate": self.bitrate,
             "duration": self.duration,
@@ -86,7 +86,7 @@ class FFStream(RichCompare):
         """Create stream from JSON string"""
         data: dict[str] = {}
         
-        data["codec_type"] = json["type"]
+        data["codec_type"] = json["media"].lower()
         if "codec" in json:
             data["codec_name"] = json["codec"]
         if "bitrate" in json:
@@ -106,9 +106,9 @@ class FFStream(RichCompare):
         return cls(data)
     
     def __str__(self) -> str:
-        base =  f"{self.type.capitalize()} <{self.codec}>: {round(self.duration,2)}s ({to_metric(self.bitrate, 'bps')})"
-        if self.type.lower() == 'video':
-            return f"{base} @ {round(self.fps,2)}fps, {self.width}x{self.height}{self.fields[:1]}"
+        base =  f"{self.media.capitalize()} <{self.codec}>: {round(self.duration,2)}s ({to_metric(self.bitrate, 'bps')})"
+        if self.media.lower() == 'video':
+            return f"{base} @ {round(self.fps or 0,3)}fps, {self.width}x{self.height}{(self.fields or '')[:1]}"
         return base
     
     def __repr__(self) -> str:
@@ -116,10 +116,10 @@ class FFStream(RichCompare):
     
     def _cmp(self, other: Self):
         """Compare a stream to this stream, required for RichCompare method generator."""
-        if self.type != other.type:
-            return sortlist(self.type, other.type, self._TYPE_ORDER, "stream")
+        if self.media != other.media:
+            return sortlist(self.media, other.media, self._TYPE_ORDER, "stream")
         elif self.codec != other.codec:
-            return sortlist(self.codec, other.codec, self._CODEC_ORDER.get(self.type,[]), "codec")
+            return sortlist(self.codec, other.codec, self._CODEC_ORDER.get(self.media,[]), "codec")
         elif self.duration != other.duration:
             return sortnum(self.duration, other.duration)
         elif self.bitrate != other.bitrate:

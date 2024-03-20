@@ -48,7 +48,7 @@ class VideoFile:
     def stream(self):
         """Main video stream"""
         for stream in self.streams:
-            if stream.type == "video":
+            if stream.media == "video":
                 return stream
         return None
     
