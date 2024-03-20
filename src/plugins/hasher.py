@@ -34,6 +34,6 @@ class Hasher(ImageHash):
         if len(self) != len(other):
             raise ValueError("Perceptual hash array size mismatch.", len(self), len(other))
         
-        limit = max(int((1 - threshold / 100) * (len(self) ** 2)), 0)
+        limit = max(int((1 - threshold / 100) * len(self)), 0)
         return count_nonzero(self.hash != other.hash) <= limit
 
