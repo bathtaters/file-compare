@@ -1,330 +1,98 @@
-from typing import Hashable, Callable
-from pathlib import Path
-from .compFile import File, FileGroup
-from .compFilePlugin import FileStat
-from .compUtils import printerr, EnumGet
+from typing import Callable, Self, TYPE_CHECKING, Any
+from .compUtils import EnumGet
 
+if TYPE_CHECKING:
+    from .compFile import File
+else:
+    File = Any
 
-class FileComparer:
+class KeepAlgorithms:
     """
-    Find duplicate/similar files
+    Class containing Algorithm Functions that will take a list of Files
+    and return a subset of that list containing any files that satisfy the given algorithm.
 
-    - exts {list[str]}: Which file extensions to scan (None will scan all)
-    - ignore {list[str]}: Which filenames to ignore (i.e. .DS_Store) (Should be all lower case)
-    - combine_groups {bool}: If True, combine groups with matching hashes/keys (Default: True)
-    - verbose {bool}: If True, print each duplicate that is found
-    - comparers {EnumGet: (hash,hash)->bool}: Special comparison dictionary based on StatEnum (Result of File.comparison_funcs)
+    The input list must be treated as read-only,
+    and the resulting list will only contain more than one File if they are tied.
+
+    When extending, must override __init__(**settings), which sets self.algorithms.
+    
+    To extend:
+    1) Create a class that is a child of this.
+    2) Import any exisiting algorithms you may want using the `cached` property of siblings.
+        - Note that the plugin order in compControl.plugins should take into account these dependencies.
+    3) Override `__init__(**settings)` method.
+        - `settings` are passed from CompController, and include:
+            - `exts` - list of prefered extensions
+            - `roots` - list of prefered locations
+            - All other plugin_settings sent by user
+    3) Call `super().__init__()` first (No need to pass in settings, since they are not used).
+    4) Create any algorithms you want to use and assign them as instance properties.
+    5) Set `self.algorithms` dict using rules:
+        - Keys are `StatEnums` related to plugin, or `None`
+        - `self.algorithms[StatEnum]` = Order of algorithms for Groupings using this Stat
+        - `self.algorithms[None]` = Default order of algorithms
+        - If no `StatEnum` value is provided, algorithms fall back to `None`
+        - If no `None` provided, algorithms fall back to FileAlgos.algorithms[None]
     """
 
-    __LIMIT = None
-    """FOR DEBUGGING: Stop scanning after this many (Falsy = scan all)"""
-    
-    exts: list[str] | None
-    """Which file extensions to scan (None will scan all)"""
-    ignore: list[str] | None
-    """Which filenames to ignore (i.e. .DS_Store) (Should be all lower case)"""
-    combine_groups: bool
-    """If True, combine groups with matching hashes/keys (Default: True)"""
-    verbose: bool
-    """If True, print each duplicate that is found"""
-    comparers: dict[EnumGet, Callable[[Hashable, Hashable], bool]]
-    """Special comparison dictionary based on StatEnum (Result of File.comparison_funcs)"""
-    
-    def __init__(
-        self,
-        exts: list[str] = None,
-        ignore: list[str] = [],
-        *,
-        combine_groups = True,
-        verbose = False,
-    ):
-        self.exts = exts
-        self.ignore = [fn.lower() for fn in ignore]
-        self.combine_groups = combine_groups
-        self.verbose = verbose
+    cached: Self = None
+    """Latest generated instance."""
 
-        self.comparers = {}
+    algorithms: dict[EnumGet | None, list[Callable[[list[File]],list[File]]]]
+    """
+    For each File list with given EnumGet, a list of algorithms to run in order.
+    Will use algorithms[None] as the default order, if a given Enum is not included in this dict.
+    """
 
-    @property
-    def exts(self):
-        return self.__exts
-    
-    @exts.setter
-    def exts(self, value):
-        if not value:
-            self.__exts = value
-        else:
-            self.__exts = [f"{'' if e[0] == '.' else '.'}{e.lower()}" for e in value]
+    def __init__(self, **settings) -> None:
+        self.algorithms = {}
+        self.cached = self
 
-    def run(self, dirs: list[Path | str], groups: list[EnumGet]):
-        """Run scan, returning a list of FileGroups, only selectings by provided groups
-        (or all in StatEnums if None provided)"""
 
-        self.comparers = File.comparison_funcs()
-            
-        matches: dict[EnumGet, dict[Hashable, FileGroup]] = dict((g, {}) for g in groups)
-        skipped: set[str] = set()
+    @staticmethod
+    def pass_test_algo(test_func: Callable[[File], bool]) -> Callable[[list[File]], list[File]]:
+        """Generic Algorithm Generator: Get the file(s) that pass the test function"""
+        return lambda files, test_func=test_func: [file for file in files if test_func(file)]
 
-        printerr(f"Scanning {len(dirs)} directories...")
 
-        for dir in (Path(d) for d in dirs):
-            # Pre-checks
-            if type(dir) is not Path:
-                dir = Path(dir)
+    @staticmethod
+    def min_max_algo(get_value: Callable[[File], int | float], is_min: bool, variance = 0) -> Callable[[list[File]], list[File]]:
+        """
+        Generic Algorithm Generator: 
+        - Get the value(s) that are the least (is_min=True) or most (is_min=False).
+        - Variance allows the value to be in a range of +/- value of variance.
+        - All floats will be rounded to the nearest int (Recommend multiplying values, if you expect them to be very close).
+        """
+        min_func = lambda a, b: a < b.start
+        max_func = lambda a, b: a > b.stop
+        comp_func: Callable[[int,range], bool] = min_func if is_min else max_func
 
-            if self.verbose:
-                printerr()
-            if not dir.exists() or not dir.is_dir():
-                printerr(f"  Invalid file path {dir} skipping")
-                continue
-            
-            # Walk dir
-            printerr(f"  Checking {dir}...")
-            count = 0
-            for path in dir.rglob("*"):
-                if self.__LIMIT and count == self.__LIMIT:
-                    break
-
-                if not path.is_file() or path.name.lower() in self.ignore:
-                    continue
-                
-                # Test extensions
-                if self.exts is not None and path.suffix.lower() not in self.exts:
-                    if path.suffix:
-                        skipped.add(path.suffix.lower())
-                    if self.verbose:
-                        printerr(f"    File skipped {path}")
-                    continue
-                
-                count += 1
-                try:
-                    # Build group hash dicts
-                    file = File(path)
-                    for stat, group in matches.items():
-                        hash = file.hash(stat)
-                        if hash is None:
-                            continue
-                        
-                        for key in group:
-                            if self.__is_match(stat, key, hash):
-                                FileGroup.append_to(group, stat, key, file)
-                        
-                        if hash not in group:
-                            FileGroup.append_to(group, stat, hash, file)
-
-                except Exception as e:
-                    if file.path.stem in str(e):
-                        printerr(f"   ",e.__class__.__name__,e)
-                    else:
-                        printerr(f"   ",e.__class__.__name__,file, e)
-                
-            printerr(f"  Checked {count} files.")
+        def min_max_val(files: list[File], get_value=get_value, comp_func=comp_func, variance=variance):
+            result: list[File] = []
+            rng: range = None
+            for file in files:
+                curr = get_value(file)
+                if rng is None or comp_func(curr, rng):
+                    result = [file]
+                    rng = range(round(curr - variance), round(curr + variance))
+                elif (curr in rng if variance else curr == rng.start):
+                    result.append(file)
+            return result
         
-        # Trim down matches, removing single items and combining matching hashes
-        result: list[FileGroup] = []
-        for stat, group in matches.items():
-            combo: dict[Hashable, FileGroup] = {}
-            for hash, files in group.items():
-                if len(files) < 2:
-                    continue
-                if not self.combine_groups:
-                    combo[hash] = files
-                    continue
-                found = False
-                for key in combo:
-                    if self.__is_match(stat, hash, key):
-                        combo[key].add_unique(files)
-                        found = True
-                if not found:
-                    combo[hash] = files
-            result.extend(combo.values())
-
-        if not self.verbose and skipped:
-            printerr(f"Extensions skipped: {', '.join(skipped)}")
-        return result
-    
-
-    def __is_match(self, stat: EnumGet, a: Hashable, b: Hashable):
-        """Returns TRUE if a & b match"""
-        if stat in self.comparers:
-            return self.comparers[stat](a, b)
-        return a == b
+        return min_max_val
 
 
+    @staticmethod
+    def array_index_algo(array: list | None, file_matches_value: Callable[[File, Any], bool], is_min=True) -> Callable[[list[File]], list[File]]:
+        """Generic Algorithm Generator: Get the value(s) matching the front/back-most (is_min=True/False) value in the array."""
 
-class FileAutoKeeper:
-    """Automatically mark files to keep/delete.
-    - Runs each algorithm under the FileGroup.stat, in order, until a single file is left to keep
-    - NOTE: exts/locations should be ordered from [most > least preferred]
-    """
-
-    __RM_DESCENDS: Path = None
-    """Set to a Base Path string to remove ONLY files under this path
-    NOTE: This will override all other settings, but will ignore files outside of size_var"""
-
-    def __init__(
-        self,
-        exts: list[str] = None,
-        locations: list[Path | str] = None,
-        plugin_settings: dict[str] = {},
-        verbose = False,
-    ):
-        self.exts = exts
-        self.locations = locations
-        self.verbose = verbose
-        self.plugin_settings = plugin_settings
-
-    @property
-    def exts(self):
-        return self.__exts
-    
-    @exts.setter
-    def exts(self, value):
-        if not value:
-            self.__exts = value
-        else:
-            self.__exts = [f"{'' if e[0] == '.' else '.'}{e.lower()}" for e in value]
-    
-    def run(self, files: FileGroup):
-        """Keeps the prevailing files from each group.
-        Also keeps files not matched at all (i.e. not the same file)"""
-
-        if self.__RM_DESCENDS:          # Override, keeping only non RM_DESCENDS
-            for file in self.not_rm_path(files):
-                file.keep = True
-            return
-        if self.has_keep(files):        # Skip if already marked
-            return
+        if not array:
+            return lambda files: files
         
-        matches = list(files)
-        for func in self.algorithms.get(files.stat, self.default_order):
-            if len(matches) < 2:
-                break
-            matches = func(self, matches)     # Whittle down matches
-            if not matches:
-                printerr("  WARNING! No matches kept from set.", [p.short for p in files])
-
-        if matches:
-            matches[0].keep = True      # Keep the first file in the list
-
-    
-    ### --- ALGORITHMS --- ###
-    """
-    Algorithm function should be type:
-        (list[File] <ReadOnly>) -> list[File]
-        Returning a new list of files from the group who satisfy the algorithm.
-        This can be a instance method, allowing acces to self.<vars>
-    """
-    
-    def has_keep(self, files: list[File]):
-        """True if any file has 'keep' set to True"""
-        return any(file.keep for file in files)
-    
-    def not_rm_path(self, files: list[File]):
-        """Get list of all files not containing RM_DESCENDS"""
-        return [file for file in files if not file.path.is_relative_to(self.__RM_DESCENDS)]
-
-    def min_name(self, files: list[File]):
-        """Get list of all files containing the shortest filename"""
-        result: list[File] = []
-        size = -1
-        for file in files:
-            curr = len(file.path.stem)
-            if size == -1 or curr < size:
-                result, size = [file], curr
-            elif curr == size:
-                result.append(file)
-        return result
-
-    def max_size(self, files: list[File]):
-        """Get list of all files containing the largest filesize"""
-        result: list[File] = []
-        size: range = None
-        var = self.plugin_settings.get("size_var", 0)
-        for file in files:
-            curr = file.hash(FileStat.SIZE)
-            if size is None or curr > size.stop:
-                result = [file]
-                size = range(round(curr - var), round(curr + var))
-            elif (curr in size if var else curr == size.start):
-                result.append(file)
-        return result
-
-    def oldest_date(self, files: list[File]):
-        """Get list of all files containing the earliest created date"""
-        result: list[File] = []
-        date: range = None
-        var = self.plugin_settings.get("time_var", 0)
-        for file in files:
-            curr = file.hash(FileStat.CTIME)
-            if date is None or curr < date.start:
-                result = [file]
-                date = range(round(curr - var), round(curr + var))
-            elif (curr in date if var else curr == date.start):
-                result.append(file)
-        return result
-    
-    def newest_date(self, files: list[File]):
-        """Get list of all files containing the latest modified date"""
-        result: list[File] = []
-        date: range = None
-        var = self.plugin_settings.get("time_var", 0)
-        for file in files:
-            curr = file.hash(FileStat.MTIME)
-            if date is None or curr > date.stop:
-                result = [file]
-                date = range(curr - var, curr + var)
-            elif (curr in date if var else curr == date.start):
-                result.append(file)
-        return result
-
-    def pref_ext(self, files: list[File]):
-        """Get a list of files containing the most preferred extensions"""
-
-        if not self.exts:
-            return files
-
-        def ext_idx(file: File):
-            try:
-                return len(self.exts) - self.exts.index(file.path.suffix.lower())
-            except ValueError:
-                return -1
-        
-        result, idx = files[:1], ext_idx(files[0])
-        for file in files[1:]:
-            curr = ext_idx(file)
-            if curr > idx:
-                result, idx = [file], curr
-            elif curr == idx:
-                result.append(file)
-        return result
-
-    def pref_loc(self, files: list[File]):
-        """Get a list of files containing the most preferred location"""
-
-        if not self.locations:
-            return files
-
-        def loc_idx(file: File):
-            for i, loc in enumerate(self.locations):
-                if file.path.is_relative_to(loc):
-                    return len(self.locations) - i
+        def get_idx(file: File, array=array, file_matches_value=file_matches_value):
+            for i, val in enumerate(array):
+                if file_matches_value(file, val):
+                    return len(array) - i
             return -1
         
-        result, idx = files[:1], loc_idx(files[0])
-        for file in files[1:]:
-            curr = loc_idx(file)
-            if curr > idx:
-                result, idx = [file], curr
-            elif curr == idx:
-                result.append(file)
-        return result
-    
-    default_order = [max_size, pref_ext, pref_loc, min_name, newest_date, oldest_date]
-    """Default algorithm order: max_size > pref_ext > pref_loc > min_name > newest_date > oldest_date"""
-
-    algorithms = {
-        FileStat.SIZE: [newest_date, pref_ext, pref_loc, min_name],
-    }
-    """For each FileGroup with given StatEnum, a list of algorithms to run in order.
-    Otherwise run in default_order."""
+        return KeepAlgorithms.min_max_algo(get_idx, is_min)

@@ -2,7 +2,8 @@ from json import dumps
 from pathlib import Path
 from .base.compFile import File, FileGroup
 from .base.compCsv import CSVParser
-from .base.compAlgos import FileComparer, FileAutoKeeper
+from .base.compScan import FileScanner
+from .base.compKeep import FileAutoKeeper
 from .base.compSanit import check_data, clean_data
 from .base.compIO import delete_files, move_files, recover_files
 from .base.compUtils import get_idx, printerr, EnumGet
@@ -47,6 +48,7 @@ class ComparisonController:
                 - time_var {float}: The +/- variance allowed in seconds for matching files times.
                 - size_var {int}: The +/- variance allowed in bytes for matching file sizes.
                 - min_name {int}: The shortest filename length that will use the alternative matcher.
+                - rm_paths: {str[]}: List of base paths, ONLY files under these paths will be marked for removal.
             - Plus settings to be passed to custom plugins
         """
         self.roots = [Path(r) for r in roots]
@@ -58,8 +60,8 @@ class ComparisonController:
         for plugin in File.plugins:
             plugin.settings = plugin_settings
 
-        self.comparer = FileComparer(exts, ignore, verbose=verbose)
-        self.keeper = FileAutoKeeper(exts, roots, plugin_settings, verbose)
+        self.comparer = FileScanner(exts, ignore, verbose=verbose)
+        self.keeper = FileAutoKeeper(verbose, exts=exts, roots=roots, **plugin_settings)
 
         if verbose:
             printerr(f"Setup ComparisonController with options: {dumps(self.__dict__, default=str, indent=2)}")
@@ -101,6 +103,7 @@ class ComparisonController:
         printerr("Auto-keeping files...")
         self.clean(silent=True)
 
+        self.keeper.init()
         for files in self._data:
             if files.stat in self._group_by():
                 self.keeper.run(files)
