@@ -70,7 +70,7 @@ class FilePlugin(ComparisonPlugin[FileStat]):
             return self.__to_dt(value)
         elif stat == FileStat.MTIME:
             return self.__to_dt(value)
-        return None
+        return value
     
     
     _DATE_FMT = "%m-%d-%Y %H:%M"
