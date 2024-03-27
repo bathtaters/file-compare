@@ -76,7 +76,7 @@ class KeepAlgorithms:
                 if rng is None or comp_func(curr, rng):
                     result = [file]
                     rng = range(round(curr - variance), round(curr + variance))
-                elif (curr in rng if variance else curr == rng.start):
+                elif (round(curr) in rng if variance else round(curr) == rng.start):
                     result.append(file)
             return result
         
@@ -89,6 +89,8 @@ class KeepAlgorithms:
 
         if not array:
             return lambda files: files
+        
+        array = [(a.lower() if type(a) is str else a) for a in array]
         
         def get_idx(file: File, array=array, file_matches_value=file_matches_value):
             for i, val in enumerate(array):
