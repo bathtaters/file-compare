@@ -52,9 +52,9 @@ options = {
     "exts": None,
     # Default fields to create groups with (None will use defaults from plugins)
     "group_by": None, # ('name','size','ctime','mtime','img_hash','vid_hash','vid_streams','vid_dur'),
-    # Default variance (+/-) for size stat within groups
+    # Default variance (+/- bytes) for size stat within groups
     "size_var": 0,
-    # Default variance (+/-) for create/modify times stat within groups
+    # Default variance (+/- ms) for create/modify times stat within groups
     "time_var": 0,
     # Default shortest filename length that will use the alternative matcher.
     "min_name": 3,
@@ -62,14 +62,26 @@ options = {
     "ignore": ('.DS_Store','Thumbs.db'),
     # If True, prints each duplicate found to stderr
     "verbose": False,
+    # Set to a list of paths, will force AutoKeeper to only remove files under these paths
+    "rm_paths": None,
 
     ### PLUGINS ###
-    # List ComparisonPlugins to use here
+    # List ComparisonPlugins to use here (In order of least specific to most)
     "plugins": [ImagePlugin, VideoPlugin],
     # Threshold for perceptual hash comparisons
     "threshold": 100,
     # Size for perceptual hash comparisons
     "precision": 16,
+    # Video containers in order of preference, None will ignore
+    "vid_containers": None,
+    # Default video bitrate variance (+/- bytes) for bitrate stat within groups
+    "bitrate_var": 100,
+    # Default video length variance (+/- seconds) for duration stat within groups
+    "duration_var": 1,
+    # Image condecs in order of preference, None will ignore
+    "img_codecs": None,
+    # Default picture dimension variance (+/- pixels) for w*h stat within groups
+    "dimension_var": 100,
 }
 
 

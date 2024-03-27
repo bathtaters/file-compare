@@ -1,5 +1,6 @@
 from typing import TypeVar, Generic, Hashable, Callable, Any
 from pathlib import Path
+from .compAlgos import KeepAlgorithms
 from .compUtils import EnumGet
 
 Stat = TypeVar("Stat", bound=EnumGet)
@@ -13,14 +14,10 @@ class ComparisonPlugin(Generic[Stat]):
     - Methods: current_stats, hash, from_str
 
     Optional overrides:
-    - Props: EXTS, GROUP_BY
+    - Props: EXTS, GROUP_BY, ALGO_BUILDER
     - Methods: __init__, comparison_funcs, to_str
 
-    NOTE: To use custom AutoKeep algorithms,
-    open compAlgos.py and edit FileAutoKeeper directly.
-    1) Import StatEnum to compAlgos.py.
-    2) Add algorithm method to FileAutoKeeper class.
-    3) Add method to FileAutoKeeper.default_order and/or new entry in FileAutoKeeper.algorithms.
+    For more info on creating custom algorithms, see compAlgos.KeepAlgorithms
     """
 
     EXTS: tuple[str] = None
@@ -32,6 +29,9 @@ class ComparisonPlugin(Generic[Stat]):
 
     GROUP_BY: list[Stat] | None = None
     """Recommended stats to use for file-grouping (Default: None => all STATS)"""
+
+    ALGO_BUILDER: type[KeepAlgorithms] = KeepAlgorithms
+    """Class that will build algorithms to use for Keep mode"""
 
     settings: dict[str] = {}
     """plugin_settings passed in from ComparisonController"""

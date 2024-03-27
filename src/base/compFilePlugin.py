@@ -1,6 +1,7 @@
 from typing import Hashable, Callable
 from datetime import datetime
 from .compPlugin import ComparisonPlugin
+from .compAlgos import KeepAlgorithms, Algorithm
 from .compUtils import EnumGet, to_metric, from_metric, range_matcher, length_matcher
 
 
@@ -18,10 +19,45 @@ class FileStat(EnumGet):
     """Last modification date/time"""
 
 
+class FileAlgos(KeepAlgorithms):
+
+    min_name: Algorithm
+    """Get list of all files containing the shortest filename"""
+    max_size: Algorithm
+    """Get list of all files containing the largest filesize"""
+    oldest_ctime: Algorithm
+    """Get list of all files containing the earliest created date"""
+    newest_mtime: Algorithm
+    """Get list of all files containing the most recent modified date"""
+    pref_exts: Algorithm
+    """Get a list of files containing the most preferred extensions"""
+    pref_loc: Algorithm
+    """Get a list of files containing the most preferred location"""
+    
+
+    def __init__(self, exts: list[str] = None, roots: list[str] = None, size_var=0, time_var=0, **_):
+        super().__init__()
+        
+        self.min_name = self.min_max_algo(lambda f: len(f.path.stem), True)
+        self.max_size = self.min_max_algo(lambda f: f.hash(FileStat.SIZE), False, size_var)
+        self.oldest_ctime = self.min_max_algo(lambda f: f.hash(FileStat.CTIME), True, time_var)
+        self.newest_mtime = self.min_max_algo(lambda f: f.hash(FileStat.MTIME), False, time_var)
+        self.pref_exts = self.array_index_algo(exts, lambda f, v: f.path.suffix.lower() == v)
+        self.pref_loc = self.array_index_algo(roots, lambda f, v: f.path.is_relative_to(v))
+
+        self.algorithms = {
+            None: [self.max_size, self.pref_exts, self.pref_loc, self.min_name, self.newest_mtime, self.oldest_ctime],
+            FileStat.SIZE: [self.newest_mtime, self.pref_exts, self.pref_loc, self.min_name],
+        }
+        
+
+
 class FilePlugin(ComparisonPlugin[FileStat]):
     """Default File scanner plugin"""
 
     STATS = FileStat
+
+    ALGO_BUILDER = FileAlgos
 
     def current_stats(self):
         """Fetch stats dict from filesystem"""
@@ -70,7 +106,7 @@ class FilePlugin(ComparisonPlugin[FileStat]):
             return self.__to_dt(value)
         elif stat == FileStat.MTIME:
             return self.__to_dt(value)
-        return None
+        return value
     
     
     _DATE_FMT = "%m-%d-%Y %H:%M"

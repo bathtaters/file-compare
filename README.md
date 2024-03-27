@@ -1,7 +1,7 @@
 # File Scanner
 v1.0.0 – by bathtaters
 
-```bash
+```
 Usage: python main.py [-m:mode] [-option:value] [csv path] paths...
 
 Modes:
