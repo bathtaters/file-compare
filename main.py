@@ -72,6 +72,16 @@ options = {
     "threshold": 100,
     # Size for perceptual hash comparisons
     "precision": 16,
+    # Video containers in order of preference, None will ignore
+    "vid_containers": None,
+    # Default video bitrate variance (+/- bytes) for bitrate stat within groups
+    "bitrate_var": 100,
+    # Default video length variance (+/- seconds) for duration stat within groups
+    "duration_var": 1,
+    # Image condecs in order of preference, None will ignore
+    "img_codecs": None,
+    # Default picture dimension variance (+/- pixels) for w*h stat within groups
+    "dimension_var": 100,
 }
 
 

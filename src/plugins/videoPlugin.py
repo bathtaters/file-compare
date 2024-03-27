@@ -2,6 +2,7 @@ from .videoFile import VideoFile
 from .ffstream import FFStream
 from .hasher import Hasher
 from ..base.compPlugin import ComparisonPlugin, EnumGet
+from ..base.compFilePlugin import FileAlgos
 
 class VideoStats(EnumGet):
     VID_TYPE = "Container"
@@ -11,10 +12,26 @@ class VideoStats(EnumGet):
     VID_STREAMS = "Streams"
 
 
+class VideoAlgos(FileAlgos):
+
+    def __init__(self, vid_containers: list[str] = None, bitrate_var=0, duration_var=0, **settings):
+        super().__init__(**settings)
+        
+        self.max_dur = self.min_max_algo(lambda f: f.stats.get(VideoStats.VID_DUR), False, duration_var)
+        self.max_streams = self.min_max_algo(lambda f: len(f.stats.get(VideoStats.VID_STREAMS)), False)
+        self.max_bitrate = self.min_max_algo(lambda f: f.stats.get(VideoStats.VID_BITRATE), False, bitrate_var)
+        self.pref_type = self.array_index_algo(vid_containers, lambda f, v: f.hash(VideoStats.VID_TYPE) == v)
+
+        self.algorithms[None] = [self.max_dur, self.max_streams, self.max_bitrate] + self.algorithms[None] + [self.pref_type]
+
+
+
 class VideoPlugin(ComparisonPlugin):
     """Hash and comparison functions for fileCompare tool"""
 
     STATS = VideoStats
+
+    ALGO_BUILDER = VideoAlgos
 
     GROUP_BY = [VideoStats.VID_DUR, VideoStats.VID_HASH, VideoStats.VID_STREAMS]
 

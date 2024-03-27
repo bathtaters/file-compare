@@ -2,6 +2,7 @@ from PIL import Image
 from pillow_heif import register_heif_opener
 from .hasher import Hasher
 from ..base.compPlugin import ComparisonPlugin, EnumGet
+from ..base.compFilePlugin import FileAlgos
 
 register_heif_opener()  # Allow scanning HEIF/HEIC files
 
@@ -13,10 +14,24 @@ class ImageStats(EnumGet):
     IMG_FRAMES = "Framecount"
 
 
+class ImageAlgos(FileAlgos):
+
+    def __init__(self, img_codecs: list[str] = None, dimension_var=0, **settings):
+        super().__init__(**settings)
+        
+        self.max_frames = self.min_max_algo(lambda f: f.stats.get(ImageStats.IMG_FRAMES), False)
+        self.max_size = self.min_max_algo(lambda f: f.hash(ImageStats.IMG_SIZE), False, dimension_var)
+        self.pref_codec = self.array_index_algo(img_codecs, lambda f, v: f.hash(ImageStats.IMG_TYPE) == v)
+
+        self.algorithms[None] = [self.max_frames] + self.algorithms[None] + [self.max_size, self.pref_codec]
+
+
 class ImagePlugin(ComparisonPlugin):
     """Hash and comparison functions for fileCompare tool"""
 
     STATS = ImageStats
+
+    ALGO_BUILDER = ImageAlgos
 
     GROUP_BY = [ImageStats.IMG_HASH]
 
@@ -48,6 +63,8 @@ class ImagePlugin(ComparisonPlugin):
         
         if stat == ImageStats.IMG_SIZE:
             return value[0] * value[1]
+        if stat == ImageStats.IMG_TYPE:
+            return value.lower()
         return value
 
     @classmethod
