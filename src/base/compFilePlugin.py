@@ -36,6 +36,7 @@ class FileAlgos(KeepAlgorithms):
     
 
     def __init__(self, exts: list[str] = None, roots: list[str] = None, size_var=0, time_var=0, **_):
+        super().__init__()
         
         self.min_name = self.min_max_algo(lambda f: len(f.path.stem), True)
         self.max_size = self.min_max_algo(lambda f: f.hash(FileStat.SIZE), False, size_var)
