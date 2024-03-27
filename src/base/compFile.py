@@ -103,6 +103,10 @@ class File:
         self.keep = bool(keep)
         self.__stats = {}
         self.update_stats(stats)
+    
+    def uses_plugin(self, plugin: type[ComparisonPlugin]):
+        """Indicates if the provided Plugin class is used in this file's extensions."""
+        return any(type(ext) is plugin for ext in self.extensions)
 
     def update_stats(self, stats: dict[EnumGet, str] = None):
         """Update file stats from CSV if dict provided, otherwise fetch from OS."""
@@ -162,6 +166,13 @@ class FileGroup(list[File]):
     def add_unique(self, values: Iterable[File] | Self):
         """Iterate through values, appending unique ones."""
         self.extend(val for val in values if val not in self)
+    
+    def get_plugins(self):
+        """Get a list of plugin classes used by this group"""
+        return [
+            p for p in File.plugins
+            if all(file.uses_plugin(p) for file in self)
+        ]
     
     def __str__(self) -> str:
         files = "\n  ".join(str(file) for file in self)

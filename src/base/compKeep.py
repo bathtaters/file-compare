@@ -1,6 +1,6 @@
-from typing import Callable
 from .compFile import File, FileGroup
 from .compAlgos import KeepAlgorithms, Algorithm
+from .compPlugin import ComparisonPlugin
 from .compUtils import EnumGet, printerr
 
 
@@ -11,7 +11,7 @@ class FileAutoKeeper:
     """
 
     not_rm_path: Algorithm | None
-    algorithms: dict[EnumGet | type[EnumGet], list[Callable[[list[File]], list[File]]]]
+    algorithms: dict[type[ComparisonPlugin] | EnumGet, list[Algorithm]]
     settings: dict[str]
     verbose: bool
 
@@ -28,12 +28,13 @@ class FileAutoKeeper:
     
     def init(self):
         """Initialize Keeper before running (Builds algorithm functions from File.plugins)"""
-        self.algorithms = KeepAlgorithms().algorithms
+        self.algorithms = {}
+        
         for plugin in File.plugins:
-            algos: KeepAlgorithms = plugin.ALGO_BUILDER(**self.settings)
-            if None in algos.algorithms:
-                self.algorithms[plugin.STATS] = algos.algorithms.pop(None)
-            self.algorithms.update(algos.algorithms)
+            algos = plugin.ALGO_BUILDER(**self.settings).algorithms
+            if None in algos:
+                self.algorithms[plugin] = algos.pop(None)
+            self.algorithms.update(algos)
 
         self.not_rm_path = None
         if self.settings.get("rm_paths"):
@@ -49,18 +50,19 @@ class FileAutoKeeper:
         return any(file.keep for file in files)
     
 
-    def get_algos(self, stat: EnumGet):
-        """Get list of algorithms from stat or default list if not found.
-        If no default set, walk File.plugins until a default is found or raise a ValueError.
-        (This should come up with the FileAlgos default if not set, which should work for any filetype.)"""
-        if stat in self.algorithms:
-            return self.algorithms[stat]
-        if type(stat) in self.algorithms:
-            return self.algorithms[type(stat)]
-        for plugin in File.plugins:
-            if plugin.STATS in self.algorithms:
-                return self.algorithms[plugin.STATS]
-        raise ValueError(f"No valid algorithm found for {stat}.")
+    def get_algos(self, files: FileGroup):
+        """Get the most specific algorithm list that works for the given `FileGroup`.
+        If a default is needed and none found, walk up the plugin list until one is found.
+        (This should always at least find FileAlgos[None] if nothing better.)"""
+
+        if files.stat in self.algorithms:
+            return self.algorithms[files.stat]  # Exact match
+        
+        for plugin in reversed(files.get_plugins()):
+            if plugin in self.algorithms:
+                return self.algorithms[plugin]  # Most specific default
+            
+        raise ValueError(f"No valid algorithm found for <{files.stat}> {files}.")
     
 
     def run(self, files: FileGroup):
@@ -77,7 +79,7 @@ class FileAutoKeeper:
             return
         
         matches = list(files)
-        for func in self.get_algos(files.stat):
+        for func in self.get_algos(files):
             if len(matches) < 2:
                 break
             matches = func(matches)     # Whittle down matches
