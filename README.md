@@ -1,5 +1,5 @@
 # File Scanner
-v1.0.0 – by bathtaters
+v1.1.0 – by bathtaters
 
 ```
 Usage: python main.py [-m:mode] [-option:value] [csv path] paths...
