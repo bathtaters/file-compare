@@ -48,7 +48,8 @@ class ComparisonController:
                 - time_var {float}: The +/- variance allowed in seconds for matching files times.
                 - size_var {int}: The +/- variance allowed in bytes for matching file sizes.
                 - min_name {int}: The shortest filename length that will use the alternative matcher.
-                - rm_paths: {str[]}: List of base paths, ONLY files under these paths will be marked for removal.
+                - rm_paths: {str[]}: List of base paths, ONLY files under these paths will be marked for removal,
+                    bypassing other rules.
             - Plus settings to be passed to custom plugins
         """
         self.roots = [Path(r) for r in roots]

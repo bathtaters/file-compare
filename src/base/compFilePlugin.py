@@ -1,7 +1,7 @@
 from typing import Hashable, Callable
 from datetime import datetime
 from .compPlugin import ComparisonPlugin
-from .compAlgos import KeepAlgorithms
+from .compAlgos import KeepAlgorithms, Algorithm
 from .compUtils import EnumGet, to_metric, from_metric, range_matcher, length_matcher
 
 
@@ -21,17 +21,17 @@ class FileStat(EnumGet):
 
 class FileAlgos(KeepAlgorithms):
 
-    min_name: Callable[[list],list]
+    min_name: Algorithm
     """Get list of all files containing the shortest filename"""
-    max_size: Callable[[list],list]
+    max_size: Algorithm
     """Get list of all files containing the largest filesize"""
-    oldest_ctime: Callable[[list],list]
+    oldest_ctime: Algorithm
     """Get list of all files containing the earliest created date"""
-    newest_mtime: Callable[[list],list]
+    newest_mtime: Algorithm
     """Get list of all files containing the most recent modified date"""
-    pref_exts: Callable[[list],list]
+    pref_exts: Algorithm
     """Get a list of files containing the most preferred extensions"""
-    pref_loc: Callable[[list],list]
+    pref_loc: Algorithm
     """Get a list of files containing the most preferred location"""
     
 

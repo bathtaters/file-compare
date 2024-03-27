@@ -52,9 +52,9 @@ options = {
     "exts": None,
     # Default fields to create groups with (None will use defaults from plugins)
     "group_by": None, # ('name','size','ctime','mtime','img_hash','vid_hash','vid_streams','vid_dur'),
-    # Default variance (+/-) for size stat within groups
+    # Default variance (+/- bytes) for size stat within groups
     "size_var": 0,
-    # Default variance (+/-) for create/modify times stat within groups
+    # Default variance (+/- ms) for create/modify times stat within groups
     "time_var": 0,
     # Default shortest filename length that will use the alternative matcher.
     "min_name": 3,
@@ -66,7 +66,7 @@ options = {
     "rm_paths": None,
 
     ### PLUGINS ###
-    # List ComparisonPlugins to use here
+    # List ComparisonPlugins to use here (In order of least specific to most)
     "plugins": [ImagePlugin, VideoPlugin],
     # Threshold for perceptual hash comparisons
     "threshold": 100,

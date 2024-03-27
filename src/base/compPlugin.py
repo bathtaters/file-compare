@@ -30,7 +30,7 @@ class ComparisonPlugin(Generic[Stat]):
     GROUP_BY: list[Stat] | None = None
     """Recommended stats to use for file-grouping (Default: None => all STATS)"""
 
-    ALGO_BUILDER: KeepAlgorithms = KeepAlgorithms
+    ALGO_BUILDER: type[KeepAlgorithms] = KeepAlgorithms
     """Class that will build algorithms to use for Keep mode"""
 
     settings: dict[str] = {}

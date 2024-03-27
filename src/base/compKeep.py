@@ -1,6 +1,6 @@
 from typing import Callable
 from .compFile import File, FileGroup
-from .compAlgos import KeepAlgorithms
+from .compAlgos import KeepAlgorithms, Algorithm
 from .compUtils import EnumGet, printerr
 
 
@@ -10,7 +10,7 @@ class FileAutoKeeper:
     - NOTE: exts/locations should be ordered from [most > least preferred]
     """
 
-    not_rm_path: Callable[[list[File]], list[File]] | None
+    not_rm_path: Algorithm | None
     algorithms: dict[EnumGet | type[EnumGet], list[Callable[[list[File]], list[File]]]]
     settings: dict[str]
     verbose: bool
@@ -69,7 +69,7 @@ class FileAutoKeeper:
         
         #### IMPORTANT: Must run init() at least once before running this!"""
 
-        if self.not_rm_path:          # Override, keeping only non rm_paths
+        if self.not_rm_path:            # Override, keeping only non rm_paths
             for file in self.not_rm_path(files):
                 file.keep = True
             return
