@@ -6,7 +6,7 @@ from ..base.compFilePlugin import FileAlgos
 
 register_heif_opener()  # Allow scanning HEIF/HEIC files
 
-class ImageStats(EnumGet):
+class ImageStat(EnumGet):
     IMG_TYPE = "Encoding"
     IMG_PXL = "Pixel Format"
     IMG_SIZE = "Dimensions"
@@ -19,9 +19,9 @@ class ImageAlgos(FileAlgos):
     def __init__(self, img_codecs: list[str] = None, dimension_var=0, **settings):
         super().__init__(**settings)
         
-        self.max_frames = self.min_max_algo(lambda f: f.stats.get(ImageStats.IMG_FRAMES), False)
-        self.max_size = self.min_max_algo(lambda f: f.to_hash(ImageStats.IMG_SIZE), False, dimension_var)
-        self.pref_codec = self.array_index_algo(img_codecs, lambda f, v: f.to_hash(ImageStats.IMG_TYPE) == v)
+        self.max_frames = self.min_max_algo(lambda f: f.stats.get(ImageStat.IMG_FRAMES), False)
+        self.max_size = self.min_max_algo(lambda f: f.to_hash(ImageStat.IMG_SIZE), False, dimension_var)
+        self.pref_codec = self.array_index_algo(img_codecs, lambda f, v: f.to_hash(ImageStat.IMG_TYPE) == v)
 
         self.algorithms[None] = [self.max_frames] + self.algorithms[None] + [self.max_size, self.pref_codec]
 
@@ -29,11 +29,11 @@ class ImageAlgos(FileAlgos):
 class ImagePlugin(ComparisonPlugin):
     """Hash and comparison functions for fileCompare tool"""
 
-    STATS = ImageStats
+    STATS = ImageStat
 
     ALGO_BUILDER = ImageAlgos
 
-    GROUP_BY = [ImageStats.IMG_HASH]
+    GROUP_BY = [ImageStat.IMG_HASH]
 
     EXTS = (
         '.heic', '.heif', '.tif', '.tiff', '.png',
@@ -48,29 +48,29 @@ class ImagePlugin(ComparisonPlugin):
 
     def current_stats(self):
         """For each Stat, get its value from the file."""
-        data: dict[ImageStats] = {}
+        data: dict[ImageStat] = {}
         precision = self.settings.get("precision", self._DEF_PRECISION)
         with Image.open(self.path) as img:
-            data[ImageStats.IMG_TYPE] = img.format
-            data[ImageStats.IMG_PXL] = img.mode
-            data[ImageStats.IMG_SIZE] = img.size
-            data[ImageStats.IMG_HASH] = Hasher.from_file(img, hash_size=precision)
-            data[ImageStats.IMG_FRAMES] = getattr(img, "n_frames", 1)
+            data[ImageStat.IMG_TYPE] = img.format
+            data[ImageStat.IMG_PXL] = img.mode
+            data[ImageStat.IMG_SIZE] = img.size
+            data[ImageStat.IMG_HASH] = Hasher.from_file(img, hash_size=precision)
+            data[ImageStat.IMG_FRAMES] = getattr(img, "n_frames", 1)
         return data
     
     @classmethod
-    def to_hash(cls, stat: ImageStats, value):
+    def to_hash(cls, stat: ImageStat, value):
         """Return a hash corresponding to the provided Stat on the File""" 
-        if stat == ImageStats.IMG_SIZE:
+        if stat == ImageStat.IMG_SIZE:
             return value[0] * value[1]
-        if stat == ImageStats.IMG_TYPE:
+        if stat == ImageStat.IMG_TYPE:
             return value.lower()
         return value
 
     @classmethod
-    def from_hash(cls, stat: ImageStats, hash):
+    def from_hash(cls, stat: ImageStat, hash):
         """Returns a stat value based on the given hash"""
-        if stat == ImageStats.IMG_SIZE:
+        if stat == ImageStat.IMG_SIZE:
             return (hash, 1)
         return hash
     
@@ -80,25 +80,25 @@ class ImagePlugin(ComparisonPlugin):
         Optional to override default hash equality function (==)."""
         threshold = cls.settings.get("threshold", 100) # 100 = exact match
         return {
-            ImageStats.IMG_HASH: lambda a,b,t=threshold: bool(a) and a.matches(b, t),
+            ImageStat.IMG_HASH: lambda a,b,t=threshold: bool(a) and a.matches(b, t),
         }
 
     @classmethod
-    def to_str(cls, stat: ImageStats, value):
+    def to_str(cls, stat: ImageStat, value):
         """Convert value of stat to a string for display/CSV.
         Optional to override default to_str function (str())."""
-        if stat == ImageStats.IMG_SIZE:
+        if stat == ImageStat.IMG_SIZE:
             return "x".join(str(d) for d in value)
         return super().to_str(stat, value)
     
     @classmethod
-    def from_str(cls, stat: ImageStats, value: str):
+    def from_str(cls, stat: ImageStat, value: str):
         """Convert result of to_str back into stat value"""
-        if stat == ImageStats.IMG_SIZE:
+        if stat == ImageStat.IMG_SIZE:
             return tuple(int(d) for d in value.split("x"))
-        if stat == ImageStats.IMG_HASH:
+        if stat == ImageStat.IMG_HASH:
             return Hasher.from_hex(value)
-        if stat == ImageStats.IMG_FRAMES:
+        if stat == ImageStat.IMG_FRAMES:
             return int(value)
         return value
 
