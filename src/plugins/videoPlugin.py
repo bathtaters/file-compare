@@ -83,7 +83,7 @@ class VideoPlugin(ComparisonPlugin):
 
         threshold = cls.settings.get("threshold", 100) # 100 = exact match
         return {
-            VideoStats.VID_HASH: lambda a,b,t=threshold: a.matches(b, t),
+            VideoStats.VID_HASH: lambda a,b,t=threshold: bool(a) and a.matches(b, t),
         }
 
     @classmethod

@@ -19,24 +19,38 @@ class Hasher(ImageHash):
         Also accepts an instance of Image if you already have one open.
         If is_video is True, hash_size will be forced to be 64.
         """
-        if isinstance(filepath, Image.Image):
-            return cls(average_hash(filepath, hash_size).hash)
-        elif is_video:
-            vhash = VideoHash(Path(filepath).as_posix()).hash_hex[2:]
-            return cls(hex_to_hash(vhash).hash)
-        with Image.open(filepath) as img:
-            return cls(average_hash(img, hash_size).hash)
+        try:
+            if isinstance(filepath, Image.Image):
+                return cls(average_hash(filepath, hash_size).hash)
+            elif is_video:
+                vhash = VideoHash(Path(filepath).as_posix()).hash_hex[2:]
+                return cls(hex_to_hash(vhash).hash)
+            with Image.open(filepath) as img:
+                return cls(average_hash(img, hash_size).hash)
+            
+        except ValueError as e:
+            path = filepath
+            if hasattr(path, "filename"):
+                path = path.filename
+            if type(path) is Path:
+                path = path.as_posix()
+            print('    WARNING: Skipping hash check for',path,'-',e)
+            return None
     
     @classmethod
     def from_hex(cls, hash_hex: str | ImageHash):
         """Create a hash instance from another instance's string"""
+        if not hash_hex:
+            return None
         return cls(hex_to_hash(str(hash_hex)).hash)
         
-    def matches(self: Self, other: Self, threshold=100):
+    def matches(self: Self, other: Self | None, threshold=100):
         """
         Test if this hashes match another hash
         - threshold is how close of a match they are in percentage (100% = exact)
         """
+        if other is None:
+            return False
         if len(self) != len(other):
             raise ValueError("Perceptual hash array size mismatch.", len(self), len(other))
         

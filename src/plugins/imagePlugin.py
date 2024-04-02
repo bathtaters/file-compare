@@ -80,7 +80,7 @@ class ImagePlugin(ComparisonPlugin):
         Optional to override default hash equality function (==)."""
         threshold = cls.settings.get("threshold", 100) # 100 = exact match
         return {
-            ImageStats.IMG_HASH: lambda a,b,t=threshold: a.matches(b, t),
+            ImageStats.IMG_HASH: lambda a,b,t=threshold: bool(a) and a.matches(b, t),
         }
 
     @classmethod
