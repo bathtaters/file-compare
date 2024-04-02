@@ -195,7 +195,7 @@ class FileGroup(list[File]):
         return f'{self.stat.name}:\n  {files}'
     
     @classmethod
-    def append_to(Cls, dictionary: dict[Hashable,Self], stat: EnumGet, key: Hashable, value: File):
+    def append_to(Cls, dictionary: dict[Hashable,Self], stat: EnumGet, value: File, key: Hashable):
         """Append value to exisiting dict, otherwise start new list"""
         if key not in dictionary:
             dictionary[key] = Cls(stat)
