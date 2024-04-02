@@ -89,7 +89,7 @@ class ImagePlugin(ComparisonPlugin):
         Optional to override default to_str function (str())."""
         if stat == ImageStats.IMG_SIZE:
             return "x".join(str(d) for d in value)
-        return str(value)
+        return super().to_str(stat, value)
     
     @classmethod
     def from_str(cls, stat: ImageStats, value: str):
@@ -100,5 +100,5 @@ class ImagePlugin(ComparisonPlugin):
             return Hasher.from_hex(value)
         if stat == ImageStats.IMG_FRAMES:
             return int(value)
-        return str(value)
+        return value
 

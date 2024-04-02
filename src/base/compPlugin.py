@@ -76,7 +76,7 @@ class ComparisonPlugin(Generic[Stat]):
     def to_str(cls, stat: Stat, value: Any) -> str | None:
         """Convert value of stat to a string for display/CSV.
         Optional to override default to_str function (str())."""
-        return str(value)
+        return None if value is None else str(value)
     
     @classmethod
     def from_str(cls, stat: Stat, value: str) -> Any:

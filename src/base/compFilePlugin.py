@@ -1,5 +1,5 @@
 from typing import Any, Hashable, Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from .compPlugin import ComparisonPlugin
 from .compAlgos import KeepAlgorithms, Algorithm
 from .compUtils import EnumGet, to_metric, from_metric, range_matcher, length_matcher
@@ -64,8 +64,8 @@ class FilePlugin(ComparisonPlugin[FileStat]):
         return {
             FileStat.NAME: self.path.stem,
             FileStat.SIZE: self.path.stat().st_size if self.path.exists() else 0,
-            FileStat.CTIME: datetime.fromtimestamp(self.path.stat().st_ctime),
-            FileStat.MTIME: datetime.fromtimestamp(self.path.stat().st_mtime),
+            FileStat.CTIME: self.__round_dt(datetime.fromtimestamp(self.path.stat().st_ctime)),
+            FileStat.MTIME: self.__round_dt(datetime.fromtimestamp(self.path.stat().st_mtime)),
         }
     
     @classmethod
@@ -98,18 +98,18 @@ class FilePlugin(ComparisonPlugin[FileStat]):
     def to_str(cls, stat: FileStat, value) -> str | None:
         """Convert value of stat to a string for display/CSV"""
         if stat == FileStat.SIZE:
-            return to_metric(value, "B")
+            return to_metric(value, "B", 16)
         elif stat == FileStat.CTIME:
             return value.strftime(cls._DATE_FMT)
         elif stat == FileStat.MTIME:
             return value.strftime(cls._DATE_FMT)
-        return str(value)
+        return super().to_str(stat, value)
     
     @classmethod
     def from_str(cls, stat: FileStat, value: str):
         """Convert result of to_str back into stat type"""
         if stat == FileStat.SIZE:
-            return from_metric(value)
+            return round(from_metric(value))
         elif stat == FileStat.CTIME:
             return cls.__to_dt(value)
         elif stat == FileStat.MTIME:
@@ -117,7 +117,7 @@ class FilePlugin(ComparisonPlugin[FileStat]):
         return value
     
     
-    _DATE_FMT = "%m-%d-%Y %H:%M"
+    _DATE_FMT = "%m-%d-%Y %H:%M:%S"
     """Default datetime format for reading/writing to CSV"""
     
     @classmethod
@@ -137,3 +137,8 @@ class FilePlugin(ComparisonPlugin[FileStat]):
             return datetime.fromtimestamp(val)
         return datetime.max
 
+    @staticmethod
+    def __round_dt(val: datetime):
+        if val.microsecond >= 500000:
+            val += timedelta(seconds=1)
+        return val.replace(microsecond=0)

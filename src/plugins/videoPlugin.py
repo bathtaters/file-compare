@@ -92,7 +92,7 @@ class VideoPlugin(ComparisonPlugin):
         Optional to override default to_str function (str())."""
         if stat == VideoStats.VID_STREAMS:
             return " | ".join(str(s) for s in sorted(value))
-        return str(value)
+        return super().to_str(stat, value)
     
     @classmethod
     def from_str(cls, stat: VideoStats, value: str):
@@ -105,5 +105,5 @@ class VideoPlugin(ComparisonPlugin):
             return Hasher.from_hex(value)
         if stat == VideoStats.VID_STREAMS:
             return [FFStream.from_str(s) for s in value.split(" | ")]
-        return str(value)
+        return value
 
