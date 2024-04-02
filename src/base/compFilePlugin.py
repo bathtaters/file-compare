@@ -1,5 +1,5 @@
-from typing import Hashable, Callable
-from datetime import datetime
+from typing import Any, Hashable, Callable
+from datetime import datetime, timedelta
 from .compPlugin import ComparisonPlugin
 from .compAlgos import KeepAlgorithms, Algorithm
 from .compUtils import EnumGet, to_metric, from_metric, range_matcher, length_matcher
@@ -39,9 +39,9 @@ class FileAlgos(KeepAlgorithms):
         super().__init__()
         
         self.min_name = self.min_max_algo(lambda f: len(f.path.stem), True)
-        self.max_size = self.min_max_algo(lambda f: f.hash(FileStat.SIZE), False, size_var)
-        self.oldest_ctime = self.min_max_algo(lambda f: f.hash(FileStat.CTIME), True, time_var)
-        self.newest_mtime = self.min_max_algo(lambda f: f.hash(FileStat.MTIME), False, time_var)
+        self.max_size = self.min_max_algo(lambda f: f.to_hash(FileStat.SIZE), False, size_var)
+        self.oldest_ctime = self.min_max_algo(lambda f: f.to_hash(FileStat.CTIME), True, time_var)
+        self.newest_mtime = self.min_max_algo(lambda f: f.to_hash(FileStat.MTIME), False, time_var)
         self.pref_exts = self.array_index_algo(exts, lambda f, v: f.path.suffix.lower() == v)
         self.pref_loc = self.array_index_algo(roots, lambda f, v: f.path.is_relative_to(v))
 
@@ -64,19 +64,25 @@ class FilePlugin(ComparisonPlugin[FileStat]):
         return {
             FileStat.NAME: self.path.stem,
             FileStat.SIZE: self.path.stat().st_size if self.path.exists() else 0,
-            FileStat.CTIME: datetime.fromtimestamp(self.path.stat().st_ctime),
-            FileStat.MTIME: datetime.fromtimestamp(self.path.stat().st_mtime),
+            FileStat.CTIME: self.__round_dt(datetime.fromtimestamp(self.path.stat().st_ctime)),
+            FileStat.MTIME: self.__round_dt(datetime.fromtimestamp(self.path.stat().st_mtime)),
         }
     
-    def hash(self, stat: FileStat, value) -> Hashable | None:
+    @classmethod
+    def to_hash(cls, stat: FileStat, value) -> Hashable | None:
         """Returns a hash corresponding to the provided stat"""
         if stat == FileStat.NAME:
             return value.lower()
-        elif stat == FileStat.CTIME:
-            return round(value.timestamp())
-        elif stat == FileStat.MTIME:
+        elif stat in (FileStat.CTIME, FileStat.MTIME):
             return round(value.timestamp())
         return value
+    
+    @classmethod
+    def from_hash(cls, stat: FileStat, hash: Hashable) -> Any:
+        """Returns a stat value based on the given hash"""
+        if stat in (FileStat.CTIME, FileStat.MTIME):
+            return datetime.fromtimestamp(hash)
+        return hash
 
     @classmethod
     def comparison_funcs(cls) -> dict[FileStat, Callable[[Hashable, Hashable], bool]]:
@@ -88,28 +94,30 @@ class FilePlugin(ComparisonPlugin[FileStat]):
             FileStat.MTIME: range_matcher(cls.settings.get("time_var", 0)),
         }
 
-    def to_str(self, stat: FileStat, value) -> str | None:
+    @classmethod
+    def to_str(cls, stat: FileStat, value) -> str | None:
         """Convert value of stat to a string for display/CSV"""
         if stat == FileStat.SIZE:
-            return to_metric(value, "B")
+            return to_metric(value, "B", 16)
         elif stat == FileStat.CTIME:
-            return value.strftime(self._DATE_FMT)
+            return value.strftime(cls._DATE_FMT)
         elif stat == FileStat.MTIME:
-            return value.strftime(self._DATE_FMT)
-        return str(value)
+            return value.strftime(cls._DATE_FMT)
+        return super().to_str(stat, value)
     
-    def from_str(self, stat: FileStat, value: str):
+    @classmethod
+    def from_str(cls, stat: FileStat, value: str):
         """Convert result of to_str back into stat type"""
         if stat == FileStat.SIZE:
-            return from_metric(value)
+            return round(from_metric(value))
         elif stat == FileStat.CTIME:
-            return self.__to_dt(value)
+            return cls.__to_dt(value)
         elif stat == FileStat.MTIME:
-            return self.__to_dt(value)
+            return cls.__to_dt(value)
         return value
     
     
-    _DATE_FMT = "%m-%d-%Y %H:%M"
+    _DATE_FMT = "%m-%d-%Y %H:%M:%S"
     """Default datetime format for reading/writing to CSV"""
     
     @classmethod
@@ -129,3 +137,8 @@ class FilePlugin(ComparisonPlugin[FileStat]):
             return datetime.fromtimestamp(val)
         return datetime.max
 
+    @staticmethod
+    def __round_dt(val: datetime):
+        if val.microsecond >= 500000:
+            val += timedelta(seconds=1)
+        return val.replace(microsecond=0)

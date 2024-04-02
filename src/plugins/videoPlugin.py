@@ -20,7 +20,7 @@ class VideoAlgos(FileAlgos):
         self.max_dur = self.min_max_algo(lambda f: f.stats.get(VideoStats.VID_DUR), False, duration_var)
         self.max_streams = self.min_max_algo(lambda f: len(f.stats.get(VideoStats.VID_STREAMS)), False)
         self.max_bitrate = self.min_max_algo(lambda f: f.stats.get(VideoStats.VID_BITRATE), False, bitrate_var)
-        self.pref_type = self.array_index_algo(vid_containers, lambda f, v: f.hash(VideoStats.VID_TYPE) == v)
+        self.pref_type = self.array_index_algo(vid_containers, lambda f, v: f.to_hash(VideoStats.VID_TYPE) == v)
 
         self.algorithms[None] = [self.max_dur, self.max_streams, self.max_bitrate] + self.algorithms[None] + [self.pref_type]
 
@@ -58,14 +58,23 @@ class VideoPlugin(ComparisonPlugin):
             VideoStats.VID_STREAMS: video.streams,
         }
     
-    def hash(self, stat: VideoStats, value):
+    @classmethod
+    def to_hash(cls, stat: VideoStats, value):
         """Return a hash corresponding to the provided Stat on the File"""
         
         if stat == VideoStats.VID_TYPE:
             return value.lower()
         if stat == VideoStats.VID_STREAMS:
+            value = cls.from_str(stat, cls.to_str(stat, value))
             return VideoFile.to_json(value)
         return value
+    
+    @classmethod
+    def from_hash(cls, stat: VideoStats, hash):
+        """Returns a stat value based on the given hash"""
+        if stat == VideoStats.VID_STREAMS:
+            return VideoFile.to_streams(hash)
+        return hash
 
     @classmethod
     def comparison_funcs(cls):
@@ -74,17 +83,19 @@ class VideoPlugin(ComparisonPlugin):
 
         threshold = cls.settings.get("threshold", 100) # 100 = exact match
         return {
-            VideoStats.VID_HASH: lambda a,b,t=threshold: a.matches(b, t),
+            VideoStats.VID_HASH: lambda a,b,t=threshold: bool(a) and a.matches(b, t),
         }
 
-    def to_str(self, stat: VideoStats, value):
+    @classmethod
+    def to_str(cls, stat: VideoStats, value):
         """Convert value of stat to a string for display/CSV.
         Optional to override default to_str function (str())."""
         if stat == VideoStats.VID_STREAMS:
             return " | ".join(str(s) for s in sorted(value))
-        return str(value)
+        return super().to_str(stat, value)
     
-    def from_str(self, stat: VideoStats, value: str):
+    @classmethod
+    def from_str(cls, stat: VideoStats, value: str):
         """Convert result of to_str back into stat value"""
         if stat == VideoStats.VID_BITRATE:
             return int(value)
@@ -94,5 +105,5 @@ class VideoPlugin(ComparisonPlugin):
             return Hasher.from_hex(value)
         if stat == VideoStats.VID_STREAMS:
             return [FFStream.from_str(s) for s in value.split(" | ")]
-        return str(value)
+        return value
 

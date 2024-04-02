@@ -19,11 +19,11 @@ class File:
             stats.update(extension.current_stats())
         return stats
     
-    def hash(self, stat: EnumGet) -> Hashable | None:
+    def to_hash(self, stat: EnumGet) -> Hashable | None:
         """Get hash from the cooresponding plugin"""
         for extension in self.extensions:
             if type(stat) is extension.STATS:
-                return extension.hash(stat, self.stats[stat])
+                return extension.to_hash(stat, self.stats[stat])
         return None
 
     @classmethod
@@ -47,6 +47,22 @@ class File:
             if type(stat) is extension.STATS:
                 return extension.from_str(stat, value)
         return value
+    
+    @classmethod
+    def hash_to_str(cls, stat: EnumGet, hash: Hashable):
+        """Convert the given hash to a string"""
+        for plugin in cls.plugins:
+            if type(stat) is plugin.STATS:
+                return plugin.to_str(stat, plugin.from_hash(stat, hash))
+        raise TypeError(f"Stat {stat} has no cooresponding plugin!")
+    
+    @classmethod
+    def str_to_hash(cls, stat: EnumGet, string: str):
+        """Convert the given hash to a string"""
+        for plugin in cls.plugins:
+            if type(stat) is plugin.STATS:
+                return plugin.to_hash(stat, plugin.from_str(stat, string))
+        raise TypeError(f"Stat {stat} has no cooresponding plugin!")
 
     # # #
     
