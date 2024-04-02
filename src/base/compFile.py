@@ -11,60 +11,7 @@ class File:
     """Representation of a file"""
 
     plugins: list[type[ComparisonPlugin]] = [FilePlugin]
-    
-    def current_stats(self):
-        """Combined stats of all plugins"""
-        stats: dict[EnumGet] = {}
-        for extension in self.extensions:
-            stats.update(extension.current_stats())
-        return stats
-    
-    def to_hash(self, stat: EnumGet) -> Hashable | None:
-        """Get hash from the cooresponding plugin"""
-        for extension in self.extensions:
-            if type(stat) is extension.STATS:
-                return extension.to_hash(stat, self.stats[stat])
-        return None
-
-    @classmethod
-    def comparison_funcs(cls) -> dict[EnumGet, Callable[[Hashable, Hashable], bool]]:
-        """Combined comparison functions of all plugins"""
-        funcs = {}
-        for plugin in cls.plugins:
-            funcs.update(plugin.comparison_funcs())
-        return funcs
-
-    def to_str(self, stat: EnumGet) -> str | None:
-        """Get string value from the cooresponding plugin"""
-        for extension in self.extensions:
-            if type(stat) is extension.STATS:
-                return extension.to_str(stat, self.stats[stat])
-        return None
-    
-    def from_str(self, stat: EnumGet, value: str):
-        """Convert string to value using the cooresponding plugin"""
-        for extension in self.extensions:
-            if type(stat) is extension.STATS:
-                return extension.from_str(stat, value)
-        return value
-    
-    @classmethod
-    def hash_to_str(cls, stat: EnumGet, hash: Hashable):
-        """Convert the given hash to a string"""
-        for plugin in cls.plugins:
-            if type(stat) is plugin.STATS:
-                return plugin.to_str(stat, plugin.from_hash(stat, hash))
-        raise TypeError(f"Stat {stat} has no cooresponding plugin!")
-    
-    @classmethod
-    def str_to_hash(cls, stat: EnumGet, string: str):
-        """Convert the given hash to a string"""
-        for plugin in cls.plugins:
-            if type(stat) is plugin.STATS:
-                return plugin.to_hash(stat, plugin.from_str(stat, string))
-        raise TypeError(f"Stat {stat} has no cooresponding plugin!")
-
-    # # #
+    """List of plugins to use for all Files"""
     
     roots: list[Path] = []
     """List of root paths, to remove for 'short' path formatting"""
@@ -145,6 +92,58 @@ class File:
     def view(self):
         """Open file in system viewer"""
         return subprocess.call(['open', self.path.as_posix()])
+    
+    def current_stats(self):
+        """Combined stats of all plugins"""
+        stats: dict[EnumGet] = {}
+        for extension in self.extensions:
+            stats.update(extension.current_stats())
+        return stats
+    
+    def to_hash(self, stat: EnumGet) -> Hashable | None:
+        """Get hash from the cooresponding plugin"""
+        for extension in self.extensions:
+            if type(stat) is extension.STATS:
+                return extension.to_hash(stat, self.stats[stat])
+        return None
+
+    def to_str(self, stat: EnumGet) -> str | None:
+        """Get string value from the cooresponding plugin"""
+        for extension in self.extensions:
+            if type(stat) is extension.STATS:
+                return extension.to_str(stat, self.stats[stat])
+        return None
+    
+    def from_str(self, stat: EnumGet, value: str):
+        """Convert string to value using the cooresponding plugin"""
+        for extension in self.extensions:
+            if type(stat) is extension.STATS:
+                return extension.from_str(stat, value)
+        return value
+    
+    @classmethod
+    def comparison_funcs(cls) -> dict[EnumGet, Callable[[Hashable, Hashable], bool]]:
+        """Combined comparison functions of all plugins"""
+        funcs = {}
+        for plugin in cls.plugins:
+            funcs.update(plugin.comparison_funcs())
+        return funcs
+    
+    @classmethod
+    def hash_to_str(cls, stat: EnumGet, hash: Hashable):
+        """Convert the given hash to a string"""
+        for plugin in cls.plugins:
+            if type(stat) is plugin.STATS:
+                return plugin.to_str(stat, plugin.from_hash(stat, hash))
+        raise TypeError(f"Stat {stat} has no cooresponding plugin!")
+    
+    @classmethod
+    def str_to_hash(cls, stat: EnumGet, string: str):
+        """Convert the given hash to a string"""
+        for plugin in cls.plugins:
+            if type(stat) is plugin.STATS:
+                return plugin.to_hash(stat, plugin.from_str(stat, string))
+        raise TypeError(f"Stat {stat} has no cooresponding plugin!")
     
     def __eq__(self, other: Self):
         return self.path.__eq__(other.path)
