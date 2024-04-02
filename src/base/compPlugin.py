@@ -9,11 +9,11 @@ class ComparisonPlugin(Generic[Stat]):
     """
     Comparison Plugin: Implement custom comparisons.
 
-    Required overrides:
+    Required overrides (All classmethods unless noted):
     - Props: STATS
-    - Methods: current_stats, hash, from_str
+    - Methods: current_stats (instance), to_hash, from_hash, from_str
 
-    Optional overrides:
+    Optional overrides (All classmethods):
     - Props: EXTS, GROUP_BY, ALGO_BUILDER
     - Methods: __init__, comparison_funcs, to_str
 
@@ -56,22 +56,30 @@ class ComparisonPlugin(Generic[Stat]):
         """For each Stat, get its value from the file."""
         raise NotImplementedError("current_stats")
     
-    def hash(self, stat: Stat, value: Any) -> Hashable | None:
+    @classmethod
+    def to_hash(cls, stat: Stat, value: Any) -> Hashable | None:
         """Return a hash corresponding to the provided Stat on the File"""
         raise NotImplementedError("hash")
+    
+    @classmethod
+    def from_hash(cls, stat: Stat, hash: Hashable) -> Any:
+        """Inverse of hash function"""
+        raise NotImplementedError("from_hash")
 
     @classmethod
-    def comparison_funcs(_) -> dict[Stat, Callable[[Hashable, Hashable], bool]]:
+    def comparison_funcs(cls) -> dict[Stat, Callable[[Hashable, Hashable], bool]]:
         """Comparison functions for each Stat.
         Optional to override default hash equality function (==)."""
         return {}
 
-    def to_str(self, stat: Stat, value: Any) -> str | None:
+    @classmethod
+    def to_str(cls, stat: Stat, value: Any) -> str | None:
         """Convert value of stat to a string for display/CSV.
         Optional to override default to_str function (str())."""
         return str(value)
     
-    def from_str(self, stat: Stat, value: str) -> Any:
+    @classmethod
+    def from_str(cls, stat: Stat, value: str) -> Any:
         """Convert result of to_str back into stat value"""
         raise NotImplementedError("from_str")
     

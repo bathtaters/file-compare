@@ -20,8 +20,8 @@ class ImageAlgos(FileAlgos):
         super().__init__(**settings)
         
         self.max_frames = self.min_max_algo(lambda f: f.stats.get(ImageStats.IMG_FRAMES), False)
-        self.max_size = self.min_max_algo(lambda f: f.hash(ImageStats.IMG_SIZE), False, dimension_var)
-        self.pref_codec = self.array_index_algo(img_codecs, lambda f, v: f.hash(ImageStats.IMG_TYPE) == v)
+        self.max_size = self.min_max_algo(lambda f: f.to_hash(ImageStats.IMG_SIZE), False, dimension_var)
+        self.pref_codec = self.array_index_algo(img_codecs, lambda f, v: f.to_hash(ImageStats.IMG_TYPE) == v)
 
         self.algorithms[None] = [self.max_frames] + self.algorithms[None] + [self.max_size, self.pref_codec]
 
@@ -58,9 +58,9 @@ class ImagePlugin(ComparisonPlugin):
             data[ImageStats.IMG_FRAMES] = getattr(img, "n_frames", 1)
         return data
     
-    def hash(self, stat: ImageStats, value):
-        """Return a hash corresponding to the provided Stat on the File"""
-        
+    @classmethod
+    def to_hash(cls, stat: ImageStats, value):
+        """Return a hash corresponding to the provided Stat on the File""" 
         if stat == ImageStats.IMG_SIZE:
             return value[0] * value[1]
         if stat == ImageStats.IMG_TYPE:
@@ -68,23 +68,31 @@ class ImagePlugin(ComparisonPlugin):
         return value
 
     @classmethod
+    def from_hash(cls, stat: ImageStats, hash):
+        """Returns a stat value based on the given hash"""
+        if stat == ImageStats.IMG_SIZE:
+            return (hash, 1)
+        return hash
+    
+    @classmethod
     def comparison_funcs(cls):
         """Comparison functions for each Stat. { Stat: (hash1, hash2) -> bool} }
         Optional to override default hash equality function (==)."""
-
         threshold = cls.settings.get("threshold", 100) # 100 = exact match
         return {
             ImageStats.IMG_HASH: lambda a,b,t=threshold: a.matches(b, t),
         }
 
-    def to_str(self, stat: ImageStats, value):
+    @classmethod
+    def to_str(cls, stat: ImageStats, value):
         """Convert value of stat to a string for display/CSV.
         Optional to override default to_str function (str())."""
         if stat == ImageStats.IMG_SIZE:
             return "x".join(str(d) for d in value)
         return str(value)
     
-    def from_str(self, stat: ImageStats, value: str):
+    @classmethod
+    def from_str(cls, stat: ImageStats, value: str):
         """Convert result of to_str back into stat value"""
         if stat == ImageStats.IMG_SIZE:
             return tuple(int(d) for d in value.split("x"))

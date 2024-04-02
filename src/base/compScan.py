@@ -127,7 +127,7 @@ class FileScanner:
         try:
             file = File(path)
             for stat, group in hash_dict.items():
-                hash = file.hash(stat)
+                hash = file.to_hash(stat)
                 if hash is None:
                     continue
                 
