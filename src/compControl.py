@@ -30,6 +30,7 @@ class ComparisonController:
         *,
         group_by: list[EnumGet | str] = None,
         headers: list[EnumGet] = None,
+        logpath: str | Path = None,
         verbose = False,
         plugins: list[ComparisonPlugin] = [],
         **plugin_settings,
@@ -41,6 +42,7 @@ class ComparisonController:
         - ignore in a list of filenames to skip scanning (i.e. .DS_Store)
         - group_by is a list of StatEnums to create FileGroups of
         - headers is the header for the CSV file
+        - logpath will create a log file at the given path that can be used to recover interrupted scans
         - verbose will print each duplicate that is found
         - plugins should include any ComparisonPlugins you wish to use (FilePlugin is always included)
         - plugin_settings allows additional keyword args to be passed through to ComparisonPlugins
@@ -61,7 +63,7 @@ class ComparisonController:
         for plugin in File.plugins:
             plugin.settings = plugin_settings
 
-        self.comparer = FileScanner(exts, ignore, verbose=verbose)
+        self.comparer = FileScanner(exts, ignore, logpath=logpath, verbose=verbose)
         self.keeper = FileAutoKeeper(verbose, exts=exts, roots=roots, **plugin_settings)
 
         if verbose:
@@ -85,7 +87,8 @@ class ComparisonController:
     
     def save_csv(self, csv_path: str | Path):
         """Save file data to CSV"""
-        self._csv.write(csv_path, self._data, [p.STATS for p in File.plugins])
+        if self._csv.write(csv_path, self._data, [p.STATS for p in File.plugins]):
+            self.comparer.cleanup()
         
 
     def view_all(self, only_deleted = False):
