@@ -14,6 +14,8 @@ requires-python = ">=3.10"
 keywords = ["file","duplicate","scan"]
 license = {text = "MIT"}
 dependencies = [
+    "imagedominantcolor @ git+https://github.com/albertopasqualetto/imagedominantcolor@2f4df942ca6478c659d71c61ceea7d2cae24c897",
+    "videohash @ git+https://github.com/albertopasqualetto/videohash.git@ea7635c1410ff6c593760648ae3d1dae911e77b5",
     "pillow>=10.2.0",
     "pillow_heif>=0.15.0",
     "ImageHash>=4.3.1",
