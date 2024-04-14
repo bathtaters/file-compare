@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic, Hashable, Callable, Any
+from typing import TypeVar, Generic, Hashable, Callable, Self, Any
 from pathlib import Path
 from .compAlgos import KeepAlgorithms
 from .compUtils import EnumGet
@@ -9,11 +9,11 @@ class ComparisonPlugin(Generic[Stat]):
     """
     Comparison Plugin: Implement custom comparisons.
 
-    Required overrides (All classmethods unless noted):
+    Required overrides (All are classmethods unless noted):
     - Props: STATS
     - Methods: current_stats (instance), to_hash, from_hash, from_str
 
-    Optional overrides (All classmethods):
+    Optional overrides (All are classmethods):
     - Props: EXTS, GROUP_BY, ALGO_BUILDER
     - Methods: __init__, comparison_funcs, to_str
 
@@ -87,3 +87,90 @@ class ComparisonPlugin(Generic[Stat]):
     class InvalidFile(TypeError):
         """File is not a match for this plugin"""
         pass
+
+    @classmethod
+    def validate(plugin, *instances: Self, ignore_warnings = False):
+        """
+        Tests that this plugin was implemented correctly:
+        - Check that all required methods are implemented
+        - Tests all to_... and from_... functions of Plugin are reversible
+            - Must provide one or more sample instances to properly test this!
+        """
+        REQUIRED = ("current_stats", "to_hash", "from_hash", "from_str")
+        TO_FROM = ("hash", "str") # to_... from_...
+
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        if plugin.STATS is EnumGet or not len(plugin.STATS):
+            errors.append("STATS unset or has no defined Stats")
+        try:
+            if not issubclass(plugin.STATS, EnumGet):
+                raise TypeError("STATS not subclass of EnumGet")
+        except TypeError:
+            errors.append("STATS must extend EnumGet")
+        
+        for func in REQUIRED:
+            if getattr(plugin, func) is getattr(ComparisonPlugin, func):
+                errors.append(f"{func} must be overridden.")
+        
+        if errors:
+            if not ignore_warnings:
+                errors += warnings
+            raise AssertionError(
+                f"{plugin.__name__} failed validation:" +
+                "\n  - " + "\n  - ".join(errors)
+            )
+        if not ignore_warnings and warnings:
+            print(
+                f"{plugin.__name__} warnings:",
+                "\n  - " + "\n  - ".join(warnings)
+            )
+
+        for instance in instances:
+            fname = instance.path.stem
+            stats = instance.current_stats()
+            
+            for stat, from1 in stats.items():
+                for func in TO_FROM:
+                    to1, from2, to2 = "<FAILED>", "<FAILED>", "<FAILED>"
+                    try:
+                        to_func = getattr(plugin, f"to_{func}")
+                        from_func = getattr(plugin, f"from_{func}")
+
+                        to1 = to_func(stat, from1)
+                        from2 = from_func(stat, to1)
+                        to2 = to_func(stat, from2)
+                        if to1 != to2:
+                            errors.append(
+                                f"{stat.name} failed to/from_{func} function traversal: "
+                                + f"{from1} -> {to1} -> {from2} -> {to2} ({fname})"
+                            )
+                        elif from1 != from2:
+                            warnings.append(
+                                f"{stat.name} to/from_{func} function traversal mistmatch: "
+                                + f"{from1} -> {to1} -> {from2} ({fname})"
+                            )
+
+                    except (AttributeError, TypeError, ValueError) as e:
+                        errors.append(
+                            f"{stat.name} stat failed to/from_{func} function traversal: "
+                            + f"{from1} -> {to1} -> {from2} -> {to2} ({fname}) {e}"
+                        )
+                    except NotImplementedError as e:
+                        errors.append(f"{e} must be overridden.")
+        
+        if errors:
+            if not ignore_warnings:
+                errors += warnings
+            raise AssertionError(
+                f"{plugin.__name__} failed validation:" +
+                "\n  - " + "\n  - ".join(errors + warnings)
+            )
+        if not ignore_warnings and warnings:
+            print(
+                f"{plugin.__name__} warnings:",
+                "\n  - " + "\n  - ".join(warnings)
+            )
+
+    
