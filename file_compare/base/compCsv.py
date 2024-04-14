@@ -40,6 +40,11 @@ class CSVParser:
 
                 key = self._read_cell(CsvStat.GROUP, row)
                 if key not in data:
+                    try:
+                        data[key] = FileGroup(EnumGet.get(self._read_cell(CsvStat.BY, row), plugins))
+                    except ValueError as e:
+                        printerr(f"  Skipping invalid group '{key}': {e}")
+                        continue
                 
                 path = Path(self._read_cell(CsvStat.PATH,row))
                 try:
