@@ -1,7 +1,20 @@
 # File Scanner
-v1.2.1 – by bathtaters
+#### v1.2.1 – by bathtaters
 
 Find and manage duplicate/similar files.
+
+---
+
+## Install as Dependency
+```bash
+pip install https://github.com/bathtaters/file-compare.git@main
+```
+
+---
+
+## Run via Command Line
+
+Using main.py
 
 ```
 Usage: python main.py [-m:mode] [-option:value] [csv path] paths...

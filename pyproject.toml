@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "file-compare"
+version = "1.2.1"
+authors = [
+    {name = "bathtaters", email = "bathtaters@gmail.com"},
+]
+description = "Find and manage duplicate/similar files."
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["file","duplicate","scan"]
+license = {text = "MIT"}
+dependencies = [
+    "pillow>=10.2.0",
+    "pillow_heif>=0.15.0",
+    "ImageHash>=4.3.1",
+    "videohash>=3.0.1",
+    "numpy>=1.26.4"
+]

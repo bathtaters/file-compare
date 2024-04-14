@@ -2,7 +2,10 @@
 *.csv
 
 # Python Files
+.venv
 __pycache__
+build
+*.egg-info
 
 # System Files
 .DS_Store
