@@ -1,5 +1,5 @@
 # File Scanner
-v1.2.0 – by bathtaters
+v1.2.1 – by bathtaters
 
 Find and manage duplicate/similar files.
 
