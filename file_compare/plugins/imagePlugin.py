@@ -1,8 +1,8 @@
 from PIL import Image
 from pillow_heif import register_heif_opener
 from .hasher import Hasher
-from ..base.compPlugin import ComparisonPlugin, EnumGet
-from ..base.compFilePlugin import FileAlgos
+from file_compare.base.compPlugin import ComparisonPlugin, EnumGet
+from file_compare.base.compFilePlugin import FileAlgos
 
 register_heif_opener()  # Allow scanning HEIF/HEIC files
 

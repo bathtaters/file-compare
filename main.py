@@ -52,8 +52,8 @@ If no CSV provided, uses '$CSV_PATH'
 ### --- BASE OPTIONS --- ###
 
 # Import Plugins
-from src.plugins.imagePlugin import ImagePlugin
-from src.plugins.videoPlugin import VideoPlugin
+from file_compare.plugins.imagePlugin import ImagePlugin
+from file_compare.plugins.videoPlugin import VideoPlugin
 
 # Default CSV file
 DEFAULT_CSV = "./results.csv"
@@ -103,8 +103,8 @@ options = {
 ### --- CLI RUNNER --- ###
 
 import sys
-from src.base.compUI import get_ui
-from src.compControl import ComparisonController
+from file_compare.base.compUI import get_ui
+from file_compare.module import ComparisonController
 
 def main():
     mode, opts, csv = get_ui(sys.argv, usage, DEFAULT_CSV)

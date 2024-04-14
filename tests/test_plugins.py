@@ -4,7 +4,7 @@ from pathlib import Path
 THIS_PATH = Path(__file__)
 syspath.insert(0, THIS_PATH.parent.parent.as_posix())
 
-from src.base.compPlugin import ComparisonPlugin, EnumGet
+from file_compare.base.compPlugin import ComparisonPlugin, EnumGet
 
 
 def validate_plugins(test_files_folder: Path | str, *plugins: type[ComparisonPlugin], ignore_warnings=False):
@@ -66,9 +66,9 @@ def _get_test_files(plugin: type[ComparisonPlugin], files: list[Path]):
 
 
 if __name__ == "__main__":
-    from src.base.compFilePlugin import FilePlugin
-    from src.plugins.imagePlugin import ImagePlugin
-    from src.plugins.videoPlugin import VideoPlugin
+    from file_compare.base.compFilePlugin import FilePlugin
+    from file_compare.plugins.imagePlugin import ImagePlugin
+    from file_compare.plugins.videoPlugin import VideoPlugin
 
     validate_plugins(
         THIS_PATH.parent,

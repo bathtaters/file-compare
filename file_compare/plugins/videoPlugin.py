@@ -1,8 +1,8 @@
 from .videoFile import VideoFile
 from .ffstream import FFStream
 from .hasher import Hasher
-from ..base.compPlugin import ComparisonPlugin, EnumGet
-from ..base.compFilePlugin import FileAlgos
+from file_compare.base.compPlugin import ComparisonPlugin, EnumGet
+from file_compare.base.compFilePlugin import FileAlgos
 
 class VideoStat(EnumGet):
     VID_TYPE = "Container"

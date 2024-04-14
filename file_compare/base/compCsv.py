@@ -40,7 +40,6 @@ class CSVParser:
 
                 key = self._read_cell(CsvStat.GROUP, row)
                 if key not in data:
-                    data[key] = FileGroup(EnumGet.get(self._read_cell(CsvStat.BY, row), plugins))
                 
                 path = Path(self._read_cell(CsvStat.PATH,row))
                 try:
@@ -167,6 +166,8 @@ class CSVParser:
                 continue
             except ValueError:
                 pass
+            if len(new_hdr) >= len(self.hdr):
+                break
             new_hdr.append(self.hdr[len(new_hdr)])
 
         self.hdr = new_hdr
@@ -180,7 +181,7 @@ class CSVParser:
             return default
         if idx >= len(row):
             return default
-        return row[idx]
+        return row[idx] or None
     
 
     @staticmethod
