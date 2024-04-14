@@ -154,6 +154,7 @@ class File:
     def __str__(self) -> str:
         return (
             f"{'*' if self.keep else '-'} {self.short} | " +
+            " | ".join(str(self.to_str(stat)) for stat in self.stats)
         )
     
     def __repr__(self) -> str:
