@@ -55,8 +55,14 @@ OPT_MAP = {
     "g": Arg("group_by", is_list=True),
     "x": Arg("exts", is_list=True),
     "i": Arg("ignore", is_list=True),
+    "r": Arg("rm_paths", is_list=True),
+    "t": Arg("threshold", int),
+    "p": Arg("precision", int),
     "vs": Arg("size_var", int),
     "vt": Arg("time_var", float),
+    "vb": Arg("bitrate_var", int),
+    "vd": Arg("duration_var", int),
+    "vs": Arg("dimension_var", int),
     "v": Arg("verbose", bool),
     "h": Arg("help", bool),
 }
@@ -79,7 +85,7 @@ def get_ui(args: list[str], help_text: str, default_csv: str):
                 opts["roots"].append(Path(arg))
 
             else:
-                raise ArgError(f"ERROR: Unknown option '{arg}'")
+                raise ArgError(f"Unknown option '{arg}'")
         
         if "help" in opts:
             opts.pop("help")
@@ -87,9 +93,15 @@ def get_ui(args: list[str], help_text: str, default_csv: str):
         elif not opts["mode"]:
             raise ArgError()
         elif opts["mode"] not in MODES:
-            raise ArgError(f"ERROR: Invalid mode '-m:{opts['mode']}'")
+            raise ArgError(f"Invalid mode '-m:{opts['mode']}'")
         elif not opts["roots"] and opts["mode"] in ("scan", "move", "recover"):
-            raise ArgError(f"ERROR: Mode -m:{opts['mode']} requires non-CSV path argument(s)")
+            raise ArgError(f"Mode -m:{opts['mode']} requires non-CSV path argument(s)")
+        elif opts.get("rm_paths") and any(path not in opts["roots"] for path in opts["rm_paths"]):
+            raise ArgError(f"Remove path(s) -r{','.join(opts['rm_paths'])} must be a root path: {','.join(opts['root'])}")
+        elif opts.get("precision") and (opts["precision"] & (opts["precision"]-1) != 0):
+            raise ArgError(f"Precision -p:{opts['precision']} must be a power of 2")
+        elif "threshold" in opts and (opts["threshold"] <= 0 or opts["threshold"] > 100):
+            raise ArgError(f"Threshold -t:{opts['threshold']} must be a percentage > 0")
 
     except ArgError as e:
         opts["mode"] = "" # Forces sys.exit
@@ -98,5 +110,5 @@ def get_ui(args: list[str], help_text: str, default_csv: str):
                 .replace("$MAIN", args[0] or "main.py")
                 .replace("$CSV_PATH", default_csv)
         )
-        if str(e): printerr('\n' + str(e))
+        if str(e): printerr('\nERROR: ' + str(e))
     return (opts.pop("mode"), opts, csv)

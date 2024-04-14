@@ -23,10 +23,21 @@ Options for scan & keep modes:
         • size      Match on file size (within variance range)
         • ctime     Match on file creation time
         • mtime     Match on file modified time
+        • mtime     Match on file modified time
+        • img_hash  Match on perceptual hash of still (i.e. visual similarity)
+        • vid_hash  Match on perceptual hash of video (i.e. visual similarity)
+        • vid_streams   Match by stream layouts (i.e. video/audio size/duration/codec)
+        • vid_dur   Match on video duration
   -x:$  Set the extensions to scan, $ is an unspaced, comma-seperated list (ex. jpg,jpeg,mp4).
   -i:$  Filenames to ignore/skip, $ is an unspaced, comma-seperated list (ex. .DS_Store,Thumbs.db).
+  -r:$  Path (from paths) to exclusively use when removing files (All files not under this path will be marked to keep).
+  -t:#  Match threshold for perceptual hash comparison (As a percentage, with 100 being an exact match).
+  -p:#  Size (precision) of perceptual hashes (As a power of 2, higher values take longer but are more precise).
   -vs:# Variance range (# is +/- value in bytes) of file size to allowed within group.
   -vt:# Variance range (# is +/- value in ms) of created/modified times to allowed within group.
+  -vb:# Variance range (# is +/- value in bytes) of video bitrate within group.
+  -vd:# Variance range (# is +/- value in seconds) of video duration within group.
+  -vs:# Variance range (# is +/- value in pixels) of image size (w x h) within group.
   -v    If present, prints every match found (NOTE: All feedback is printed to stderr).
   -h    Shows you this help text.
 
