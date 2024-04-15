@@ -62,6 +62,10 @@ class FFStream(RichCompare):
         if len(fps) == 2: return float(fps[0]) / float(fps[1])
         return None
     
+    @property
+    def attached_pic(self):
+        return self.data.get("disposition",{}).get("attached_pic", False)
+    
     def json(self):
         """Stream data as simple dict"""
         if self.media == "video":

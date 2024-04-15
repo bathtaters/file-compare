@@ -68,10 +68,10 @@ def _get_test_files(plugin: type[ComparisonPlugin], files: list[Path]):
 if __name__ == "__main__":
     from file_compare.base.compFilePlugin import FilePlugin
     from file_compare.plugins.image import ImagePlugin
-    from file_compare.plugins.video import VideoPlugin
+    from file_compare.plugins.av import AVPlugin
 
     validate_plugins(
         THIS_PATH.parent,
-        FilePlugin, ImagePlugin, VideoPlugin,
+        FilePlugin, ImagePlugin, AVPlugin,
         ignore_warnings=False
     )

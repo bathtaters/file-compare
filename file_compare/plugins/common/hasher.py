@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, TypeAlias, Literal
 from pathlib import Path
 from videohash import VideoHash
 from imagehash import ImageHash, hex_to_hash, average_hash, NDArray
@@ -6,14 +6,19 @@ from PIL import Image
 from numpy import count_nonzero
 
 
+HashFormat: TypeAlias = Literal["image"] | Literal["video"] | Literal["audio"]
+
+
 class Hasher(ImageHash):
     """Calculate perceptual hash of media file"""
+
+    VALID_FORMATS: tuple[HashFormat] = ("image", "video", "audio")
 
     hash: NDArray
     """Raw hash array"""
 
     @classmethod
-    def from_file(cls, filepath: str | Path | Image.Image, is_video=False, hash_size=64):
+    def from_file(cls, filepath: str | Path | Image.Image, format: HashFormat = "image", hash_size=64):
         """
         Hash the given file, if is_video if False will be treated an image.
         Also accepts an instance of Image if you already have one open.
@@ -22,9 +27,13 @@ class Hasher(ImageHash):
         try:
             if isinstance(filepath, Image.Image):
                 return cls(average_hash(filepath, hash_size).hash)
-            elif is_video:
+            elif format not in cls.VALID_FORMATS:
+                raise ValueError(f"Invalid hash format '{format}'. Expected: {', '.join(HASH_FMTS)}")
+            elif format == "video":
                 vhash = VideoHash(Path(filepath).as_posix()).hash_hex[2:]
                 return cls(hex_to_hash(vhash).hash)
+            elif format == "audio":
+                raise NotImplementedError() # TODO: Implement
             with Image.open(filepath) as img:
                 return cls(average_hash(img, hash_size).hash)
             

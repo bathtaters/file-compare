@@ -54,7 +54,7 @@ class ImagePlugin(ComparisonPlugin):
             data[ImageStat.IMG_TYPE] = img.format
             data[ImageStat.IMG_PXL] = img.mode
             data[ImageStat.IMG_SIZE] = img.size
-            data[ImageStat.IMG_HASH] = Hasher.from_file(img, hash_size=precision)
+            data[ImageStat.IMG_HASH] = Hasher.from_file(img, "image", precision)
             data[ImageStat.IMG_FRAMES] = getattr(img, "n_frames", 1)
         return data
     

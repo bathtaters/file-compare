@@ -1,5 +1,5 @@
 from .module import ComparisonController
-from .plugins.video import VideoPlugin
+from .plugins.av import AVPlugin
 from .plugins.image import ImagePlugin
 
 from .base.compUtils import EnumGet
