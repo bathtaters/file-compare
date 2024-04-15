@@ -175,11 +175,11 @@ class EnumGet(Enum):
 
         if type(val) is cls:
             return val
-        try:
-            return cls[val.upper()]
-        except KeyError:
-            pass
-        return cls(val.capitalize())
+        upval = val.upper()
+        for enum in cls:
+            if upval == enum.name.upper() or upval == str(enum.value).upper():
+                return enum
+        raise ValueError(f"'{val}' is not a value EnumGet")
 
 
 class RichCompare:
