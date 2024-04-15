@@ -45,8 +45,8 @@ class AVFile:
     
     @property
     def bitrate(self):
-        if self.data.get("bitrate") is not None:
-            return int(self.data["bitrate"])
+        if self.data.get("bit_rate"):
+            return int(self.data["bit_rate"])
         return sum(s.bitrate for s in self.streams)
     
     @property
