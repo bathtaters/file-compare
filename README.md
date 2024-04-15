@@ -3,6 +3,8 @@
 
 Find and manage duplicate/similar files.
 
+Requires installation of [FFMpeg](https://ffmpeg.org/download.html) and [chromaprint](https://acoustid.org/chromaprint).
+
 ---
 
 ## Install as Dependency

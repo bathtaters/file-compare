@@ -1,6 +1,6 @@
 from PIL import Image
 from pillow_heif import register_heif_opener
-from .hasher import Hasher
+from .common.hasher import ImageHasher
 from file_compare.base.compPlugin import ComparisonPlugin, EnumGet
 from file_compare.base.compFilePlugin import FileAlgos
 
@@ -54,7 +54,7 @@ class ImagePlugin(ComparisonPlugin):
             data[ImageStat.IMG_TYPE] = img.format
             data[ImageStat.IMG_PXL] = img.mode
             data[ImageStat.IMG_SIZE] = img.size
-            data[ImageStat.IMG_HASH] = Hasher.from_file(img, hash_size=precision)
+            data[ImageStat.IMG_HASH] = ImageHasher.from_file(img, precision)
             data[ImageStat.IMG_FRAMES] = getattr(img, "n_frames", 1)
         return data
     
@@ -97,7 +97,7 @@ class ImagePlugin(ComparisonPlugin):
         if stat == ImageStat.IMG_SIZE:
             return tuple(int(d) for d in value.split("x"))
         if stat == ImageStat.IMG_HASH:
-            return Hasher.from_hex(value)
+            return ImageHasher.from_str(value)
         if stat == ImageStat.IMG_FRAMES:
             return int(value)
         return value

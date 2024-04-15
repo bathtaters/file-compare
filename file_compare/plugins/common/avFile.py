@@ -1,15 +1,18 @@
 from pathlib import Path
 from subprocess import run
 from json import loads, dumps
-from .ffstream import FFStream, to_metric
 from .hasher import Hasher
+from .ffstream import FFStream, to_metric
 
 
-class VideoFile:
-    """Analyzer for video file"""
+class AVFile:
+    """Analyzer for video/audio file"""
 
     __SKIP_HASH = False
     """Skip running time-consuming hash algorithm. (For debuggine since these are time-consuming)"""
+
+    __TYPE_PREF = ("video", "audio", "data")
+    """Order of preference for codec types"""
     
     __cmd = [
         'ffprobe',
@@ -21,14 +24,16 @@ class VideoFile:
     ]
     """Command to get media info"""
 
-    def __init__(self, filepath: str | Path) -> None:
+    def __init__(self, filepath: str | Path, precision: int = 64, with_hash = True) -> None:
         self.path = Path(filepath)
         raw = self.fetch_data(self.path)
         self.data = raw.get("format", {})
         self.streams = [FFStream(s) for s in raw.get("streams", {})]
         self.hash = None
-        if not self.__SKIP_HASH:
-            self.hash = Hasher.from_file(filepath, is_video=True)
+        self.media = self._get_media()
+
+        if with_hash and not self.__SKIP_HASH:
+            self.hash = Hasher.from_file(filepath, precision, self.media)
     
     @property
     def container(self):
@@ -40,15 +45,15 @@ class VideoFile:
     
     @property
     def bitrate(self):
-        if self.data.get("bitrate") is not None:
-            return int(self.data["bitrate"])
+        if self.data.get("bit_rate"):
+            return int(self.data["bit_rate"])
         return sum(s.bitrate for s in self.streams)
     
     @property
     def stream(self):
-        """Main video stream"""
+        """Main stream of file"""
         for stream in self.streams:
-            if stream.media == "video":
+            if stream.media == self.media:
                 return stream
         return None
     
@@ -69,6 +74,19 @@ class VideoFile:
         if self.hash is not None:
             data["hash"] = str(self.hash)
         return dumps(data, indent=2)
+    
+    def _get_media(self):
+        """Get media type of file"""
+        types = {}
+        for stream in self.streams:
+            if stream.attached_pic:
+                continue
+            types[stream.media] = types.get(stream.media,0) + 1
+
+        for pref in self.__TYPE_PREF:
+            if types.get(pref):
+                return pref
+        return next(iter(types), None)
     
     @staticmethod
     def to_json(streams: list[FFStream], indent: int | str = None):

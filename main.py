@@ -52,8 +52,8 @@ If no CSV provided, uses '$CSV_PATH'
 ### --- BASE OPTIONS --- ###
 
 # Import Plugins
-from file_compare.plugins.imagePlugin import ImagePlugin
-from file_compare.plugins.videoPlugin import VideoPlugin
+from file_compare.plugins.image import ImagePlugin
+from file_compare.plugins.av import AVPlugin
 
 # Default CSV file
 DEFAULT_CSV = "./results.csv"
@@ -81,13 +81,13 @@ options = {
 
     ### PLUGINS ###
     # List ComparisonPlugins to use here (In order of least specific to most)
-    "plugins": [ImagePlugin, VideoPlugin],
+    "plugins": [ImagePlugin, AVPlugin],
     # Video containers in order of preference, None will ignore
     "vid_containers": None,
     # Image codecs in order of preference, None will ignore
     "img_codecs": None,
     # Threshold for perceptual hash comparisons
-    "threshold": 100,
+    "threshold": 95,
     # Size for perceptual hash comparisons
     "precision": 16,
     # Default video bitrate variance (+/- bytes) for bitrate stat within groups
