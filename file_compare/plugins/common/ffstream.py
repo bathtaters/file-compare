@@ -59,8 +59,8 @@ class FFStream(RichCompare):
     def fps(self):
         fps = self.data.get("r_frame_rate", "0/0/0").split("/")
         if len(fps) == 1: return float(fps[0])
-        if len(fps) == 2: return float(fps[0]) / float(fps[1])
-        return None
+        if len(fps) != 2 or not int(fps[1]): return None
+        return float(fps[0]) / (float(fps[1]))
     
     @property
     def attached_pic(self):
