@@ -87,7 +87,7 @@ options = {
     # Image codecs in order of preference, None will ignore
     "img_codecs": None,
     # Threshold for perceptual hash comparisons
-    "threshold": 100,
+    "threshold": 95,
     # Size for perceptual hash comparisons
     "precision": 16,
     # Default video bitrate variance (+/- bytes) for bitrate stat within groups
