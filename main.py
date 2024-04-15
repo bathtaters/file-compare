@@ -52,8 +52,8 @@ If no CSV provided, uses '$CSV_PATH'
 ### --- BASE OPTIONS --- ###
 
 # Import Plugins
-from file_compare.plugins.imagePlugin import ImagePlugin
-from file_compare.plugins.videoPlugin import VideoPlugin
+from file_compare.plugins.image import ImagePlugin
+from file_compare.plugins.video import VideoPlugin
 
 # Default CSV file
 DEFAULT_CSV = "./results.csv"

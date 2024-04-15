@@ -1,6 +1,6 @@
-from .videoFile import VideoFile
-from .ffstream import FFStream
-from .hasher import Hasher
+from .common.videoFile import VideoFile
+from .common.ffstream import FFStream
+from .common.hasher import Hasher
 from file_compare.base.compPlugin import ComparisonPlugin, EnumGet
 from file_compare.base.compFilePlugin import FileAlgos
 

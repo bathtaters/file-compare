@@ -1,7 +1,7 @@
 from typing import Self
 from json import dumps
 from re import compile, IGNORECASE
-from ..base.compUtils import RichCompare, to_metric, from_metric, sortlist, sortnum
+from file_compare.base.compUtils import RichCompare, to_metric, from_metric, sortlist, sortnum
 
 class FFStream(RichCompare):
     """Single stream within a media file"""
