@@ -7,7 +7,7 @@ Find and manage duplicate/similar files.
 
 ## Install as Dependency
 ```bash
-pip install https://github.com/bathtaters/file-compare.git@main
+pip install git+https://github.com/bathtaters/file-compare.git@main
 ```
 
 ---
