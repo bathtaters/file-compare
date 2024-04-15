@@ -165,15 +165,16 @@ class CSVParser:
         """Update self.hdr from CSV header"""
         new_hdr: list[EnumGet] = []
 
+        plugins = [CsvStat] + plugins
+
         for col in csv_hdr:
             try:
                 new_hdr.append(EnumGet.get(col, plugins))
                 continue
             except ValueError:
-                pass
-            if len(new_hdr) >= len(self.hdr):
-                break
-            new_hdr.append(self.hdr[len(new_hdr)])
+                printerr(f"  Unrecognized column '{col}'.")
+            if len(new_hdr) < len(self.hdr):
+                new_hdr.append(self.hdr[len(new_hdr)])
 
         self.hdr = new_hdr
     
