@@ -1,4 +1,3 @@
-from pathlib import Path
 from .common.avFile import AVFile
 from .common.hasher import Hasher
 from .common.ffstream import FFStream
@@ -104,7 +103,7 @@ class AVPlugin(ComparisonPlugin):
         if stat == AVStat.AV_DUR:
             return float(value)
         if stat == AVStat.AV_HASH:
-            return Hasher.from_hex(value)
+            return Hasher.from_str(value)
         if stat == AVStat.AV_STREAMS:
             return [FFStream.from_str(s) for s in value.split(" | ")]
         return value

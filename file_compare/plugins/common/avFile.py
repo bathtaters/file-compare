@@ -24,7 +24,7 @@ class AVFile:
     ]
     """Command to get media info"""
 
-    def __init__(self, filepath: str | Path, with_hash = True) -> None:
+    def __init__(self, filepath: str | Path, precision: int = 64, with_hash = True) -> None:
         self.path = Path(filepath)
         raw = self.fetch_data(self.path)
         self.data = raw.get("format", {})
@@ -32,8 +32,8 @@ class AVFile:
         self.hash = None
         self.media = self._get_media()
 
-        if with_hash and not self.__SKIP_HASH and self.media in Hasher.VALID_FORMATS:
-            self.hash = Hasher.from_file(filepath, format=self.media)
+        if with_hash and not self.__SKIP_HASH:
+            self.hash = Hasher.from_file(filepath, precision, self.media)
     
     @property
     def container(self):

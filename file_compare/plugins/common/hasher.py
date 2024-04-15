@@ -7,62 +7,126 @@ from numpy import count_nonzero
 
 
 HashFormat: TypeAlias = Literal["image"] | Literal["video"] | Literal["audio"]
+VALID_FORMATS: tuple[HashFormat] = ("image", "video", "audio")
 
 
-class Hasher(ImageHash):
-    """Calculate perceptual hash of media file"""
+class Hasher:
+    """
+    Abstract Hasher class. Must implement:
+    - self.matches(other: Hasher | None, threshold %)
+    - str(self) = string
+    - Hasher.from_file(file, precision?)
+    - Hasher.from_str(string)
 
-    VALID_FORMATS: tuple[HashFormat] = ("image", "video", "audio")
+    Use Hasher(hash) to set self.hash.
+    """
 
-    hash: NDArray
-    """Raw hash array"""
-
-    @classmethod
-    def from_file(cls, filepath: str | Path | Image.Image, format: HashFormat = "image", hash_size=64):
+    def __init__(self, hash) -> None:
         """
-        Hash the given file, if is_video if False will be treated an image.
-        Also accepts an instance of Image if you already have one open.
-        If is_video is True, hash_size will be forced to be 64.
+        Create a new hash object
         """
-        try:
-            if isinstance(filepath, Image.Image):
-                return cls(average_hash(filepath, hash_size).hash)
-            elif format not in cls.VALID_FORMATS:
-                raise ValueError(f"Invalid hash format '{format}'. Expected: {', '.join(HASH_FMTS)}")
-            elif format == "video":
-                vhash = VideoHash(Path(filepath).as_posix()).hash_hex[2:]
-                return cls(hex_to_hash(vhash).hash)
-            elif format == "audio":
-                raise NotImplementedError() # TODO: Implement
-            with Image.open(filepath) as img:
-                return cls(average_hash(img, hash_size).hash)
-            
-        except ValueError as e:
-            path = filepath
-            if hasattr(path, "filename"):
-                path = path.filename
-            if type(path) is Path:
-                path = path.as_posix()
-            print('    WARNING: Skipping hash check for',path,'-',e)
-            return None
+        self.hash = hash
+
     
-    @classmethod
-    def from_hex(cls, hash_hex: str | ImageHash):
-        """Create a hash instance from another instance's string"""
-        if not hash_hex:
-            return None
-        return cls(hex_to_hash(str(hash_hex)).hash)
-        
-    def matches(self: Self, other: Self | None, threshold=100):
+    def matches(self, other: Self, threshold: float | int = None) -> bool:
         """
         Test if this hashes match another hash
         - threshold is how close of a match they are in percentage (100% = exact)
         """
-        if other is None:
-            return False
-        if len(self) != len(other):
-            raise ValueError("Perceptual hash array size mismatch.", len(self), len(other))
+        raise NotImplementedError("matches")
+    
+    
+    def __str__(self) -> str:
+        raise NotImplementedError("str")
+    
+
+    @staticmethod
+    def from_str(string: str):
+        """Convert string into the assumed hasher"""
+        if not string:
+            return None
+        if ":" in string:
+            return AudioHasher.from_str(string)
+        return VideoHasher.from_str(string)
+    
+    
+    @staticmethod
+    def from_file(file: str | Path | Image.Image, precision=64, format: HashFormat = "image"):
+        """Hash the given file."""
+        try:
+            if isinstance(file, Image.Image) or format == "image":
+                hasher = ImageHasher
+            elif format == "video":
+                hasher = VideoHasher
+            elif format == "audio":
+                hasher = AudioHasher
+            else:
+                raise ValueError(f"Invalid hash format '{format}'. Expected: {', '.join(VALID_FORMATS)}")
+            
+            return hasher.from_file(file, precision)
+            
+        except ValueError as e:
+            if hasattr(file, "filename"):
+                file = file.filename
+            if type(file) is Path:
+                file = file.as_posix()
+            print(f'    WARNING: Skipping hash check for {file} - {e}')
+            return None
         
-        limit = max(int((1 - threshold / 100) * len(self)), 0)
-        return count_nonzero(self.hash != other.hash) <= limit
+
+
+class ImageHasher(Hasher):
+    """Calculate perceptual hash of image file"""
+
+    hash: ImageHash
+    
+    def matches(self, other: Self, threshold: float | int = None) -> bool:
+        if other is None or type(self) is not type(other):
+            return False
+        if len(self.hash) != len(other.hash):
+            raise ValueError("Perceptual hash array size mismatch.", len(self.hash), len(other.hash))
+        
+        limit = max(int((1 - threshold / 100) * len(self.hash)), 0)
+        return count_nonzero(self.hash.hash != other.hash.hash) <= limit
+    
+
+    def __str__(self) -> str:
+        return self.hash.__str__()
+    
+
+    @classmethod
+    def from_str(cls, string: str) -> Self:
+        if not string:
+            return None
+        return cls(hex_to_hash(str(string)))
+    
+
+    @classmethod
+    def from_file(cls, file: str | Path | Image.Image, precision: int = 64) -> None:
+        """
+        Create a new hash object from a file
+        - precision is how large of a hash to use (power of 2)
+        """
+        if isinstance(file, Image.Image):
+            cls(average_hash(file, precision))
+        else:
+            with Image.open(file) as img:
+                cls(average_hash(img, precision))
+        
+
+
+class VideoHasher(ImageHasher):
+    """Calculate perceptual hash of video file"""
+    
+    @classmethod
+    def from_file(cls, file: str | Path | Image.Image, precision: int = 64) -> None:
+        vhash = VideoHash(Path(file).as_posix()).hash_hex[2:]
+        return cls(hex_to_hash(vhash))
+    
+
+
+class AudioHasher(Hasher):
+    """Calculate acoustic fingerprint of file"""
+
+    pass
 
