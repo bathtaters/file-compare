@@ -1,7 +1,8 @@
 from typing import Self, TypeAlias, Literal
 from pathlib import Path
 from videohash import VideoHash
-from imagehash import ImageHash, hex_to_hash, average_hash, NDArray
+from imagehash import ImageHash, hex_to_hash, average_hash
+from acoustid import fingerprint_file, compare_fingerprints
 from PIL import Image
 from numpy import count_nonzero
 
@@ -128,5 +129,31 @@ class VideoHasher(ImageHasher):
 class AudioHasher(Hasher):
     """Calculate acoustic fingerprint of file"""
 
-    pass
+    hash: tuple[float, bytes]
+    
+    def matches(self, other: Self, threshold: float | int = None) -> bool:
+        if other is None or type(self) is not type(other):
+            return False
+        return compare_fingerprints(self.hash, other.hash) >= threshold / 100.0
+    
+
+    def __str__(self) -> str:
+        return f"{round(self.hash[0], 2)}:" + self.hash[1].decode()
+    
+
+    @classmethod
+    def from_str(cls, string: str) -> Self:
+        if not string:
+            return None
+        dur, fp = string.split(":")
+        return cls((float(dur), fp.encode()))
+    
+
+    @classmethod
+    def from_file(cls, file: str | Path, precision: int = 64) -> None:
+        """
+        Create a new hash object from a file
+        - precision is how much of the file to use (x 4 sec)
+        """
+        return cls(fingerprint_file(file, precision * 4))
 

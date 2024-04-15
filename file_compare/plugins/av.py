@@ -43,13 +43,23 @@ class AVPlugin(ComparisonPlugin):
         '.mp4', '.m4p', '.m4v',
         '.avi', '.mpg',
         '.mp2', '.mpeg', '.mpe', '.mpv',
-        '.wmv',
+        '.wmv', '.rm',
+        '.flac', '.alac',
+        '.wav', '.rf64', '.bwf', '.riff',
+        '.caf', '.aiff', '.aif', '.au',
+        '.aac', '.mp3',
+        '.ogg', '.opus',
+        '.m4a', '.wma',
     )
     """Ordered list of av extensions to use"""
 
+    _DEF_PRECISION = 8
+    """Default hash size (_DEF_PRECIISON x 4 sec = length of audio to hash)"""
+
     def current_stats(self):
         """For each Stat, get its value from the file."""
-        file = AVFile(self.path)
+        precision = self.settings.get("precision", self._DEF_PRECISION)
+        file = AVFile(self.path, precision)
         return {
             AVStat.AV_MEDIA: file.media,
             AVStat.AV_CONTAINER: file.container,
