@@ -39,6 +39,8 @@ class CSVParser:
                     continue
 
                 key = self._read_cell(CsvStat.GROUP, row)
+                if str(key).isdigit():
+                    key = int(key)
                 if key not in data:
                     try:
                         data[key] = FileGroup(EnumGet.get(self._read_cell(CsvStat.BY, row), plugins))
