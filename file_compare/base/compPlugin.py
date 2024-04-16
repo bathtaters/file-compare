@@ -148,7 +148,7 @@ class ComparisonPlugin(Generic[Stat]):
                             )
                         elif from1 != from2:
                             warnings.append(
-                                f"{stat.name} to/from_{func} function traversal mistmatch: "
+                                f"{stat.name} inexact to/from_{func} function traversal: "
                                 + f"{from1} -> {to1} -> {from2} ({fname})"
                             )
 

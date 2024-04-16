@@ -39,6 +39,14 @@ class Hasher:
         raise NotImplementedError("matches")
     
     
+    def __eq__(self, other: Self):
+        """
+        Equality test For plugin unit tests,
+        can be overridden if there is a better way to calculate exact equality.
+        """
+        return str(self) == str(other)
+    
+
     def __str__(self) -> str:
         raise NotImplementedError("str")
     
