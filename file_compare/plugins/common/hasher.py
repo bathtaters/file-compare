@@ -1,10 +1,12 @@
 from typing import Self, TypeAlias, Literal
 from pathlib import Path
-from videohash import VideoHash
+from subprocess import run
+from tempfile import gettempdir
 from imagehash import ImageHash, hex_to_hash, average_hash
 from acoustid import fingerprint_file, compare_fingerprints
 from PIL import Image
 from numpy import count_nonzero
+from file_compare.base.compUtils import printerr
 
 
 HashFormat: TypeAlias = Literal["image"] | Literal["video"] | Literal["audio"]
@@ -16,7 +18,7 @@ class Hasher:
     Abstract Hasher class. Must implement:
     - self.matches(other: Hasher | None, threshold %)
     - str(self) = string
-    - Hasher.from_file(file, precision?)
+    - Hasher.from_file(file, precision?, duration?)
     - Hasher.from_str(string)
 
     Use Hasher(hash) to set self.hash.
@@ -52,7 +54,7 @@ class Hasher:
     
     
     @staticmethod
-    def from_file(file: str | Path | Image.Image, precision=64, format: HashFormat = "image"):
+    def from_file(file: str | Path | Image.Image, precision=64, format: HashFormat = "image", duration = 0.0):
         """Hash the given file."""
         try:
             if isinstance(file, Image.Image) or format == "image":
@@ -64,7 +66,7 @@ class Hasher:
             else:
                 raise ValueError(f"Invalid hash format '{format}'. Expected: {', '.join(VALID_FORMATS)}")
             
-            return hasher.from_file(file, precision)
+            return hasher.from_file(file, precision, duration)
             
         except ValueError as e:
             if hasattr(file, "filename"):
@@ -103,26 +105,85 @@ class ImageHasher(Hasher):
     
 
     @classmethod
-    def from_file(cls, file: str | Path | Image.Image, precision: int = 64) -> None:
+    def from_file(cls, file: str | Path | Image.Image, precision: int, *_):
         """
         Create a new hash object from a file
         - precision is how large of a hash to use (power of 2)
         """
         if isinstance(file, Image.Image):
-            cls(average_hash(file, precision))
+            return cls(average_hash(file, precision))
         else:
             with Image.open(file) as img:
-                cls(average_hash(img, precision))
+                return cls(average_hash(img, precision))
         
 
 
-class VideoHasher(ImageHasher):
+class VideoHasher(Hasher):
     """Calculate perceptual hash of video file"""
+
+    _VHASH_FCOUNT = 10
+    _FFMPEG_PATH = "ffmpeg"
+    _FFMPEG_LOG = "fatal"
     
+    hash: list[ImageHash]
+    
+
+    def matches(self, other: Self, threshold: float | int = None) -> bool:
+        frame_count = min(len(self.hash), len(other.hash), self._VHASH_FCOUNT)
+        if frame_count < 1:
+            return False
+
+        hash_size = min(len(self.hash[0]), len(other.hash[0]))
+        if hash_size < 2:
+            return False
+
+        limit = max(int((1 - threshold / 100) * hash_size), 0) * frame_count
+
+        count = 0
+        for i in range(frame_count):
+            count += count_nonzero(self.hash[i].hash != other.hash[i].hash)
+        return count <= limit
+    
+
+    def __str__(self) -> str:
+        return "|".join(str(h) for h in self.hash)
+    
+
     @classmethod
-    def from_file(cls, file: str | Path | Image.Image, precision: int = 64) -> None:
-        vhash = VideoHash(Path(file).as_posix()).hash_hex[2:]
-        return cls(hex_to_hash(vhash))
+    def from_str(cls, string: str) -> Self:
+        if not string:
+            return None
+        return cls([hex_to_hash(h) for h in string.split("|")])
+    
+
+    @classmethod
+    def from_file(cls, file: str | Path, precision: int, duration: float):
+        file = Path(file)
+        temp = Path(gettempdir())
+        precision = max(2, precision >> 3)
+
+        if cls._create_imgs(file, temp.joinpath(f"{file.stem}_%02d.png"), duration):
+            printerr(f"    Failed to generate video hash: {file}")
+            return None
+        
+        hashes = []
+        for tmpfile in sorted(temp.glob(f"{file.stem}_*.png")):
+            with Image.open(tmpfile) as img:
+                hashes.append(average_hash(img))
+            tmpfile.unlink()
+        return cls(hashes)
+
+
+    @classmethod
+    def _create_imgs(cls, input: str, output: str, duration: float):
+        cmd = [
+            cls._FFMPEG_PATH,
+            "-i", str(input),
+            "-vf", f"fps={cls._VHASH_FCOUNT}/{duration}",
+            str(output),
+            "-v", cls._FFMPEG_LOG,
+        ]
+        return run(cmd).returncode
     
 
 
@@ -150,7 +211,7 @@ class AudioHasher(Hasher):
     
 
     @classmethod
-    def from_file(cls, file: str | Path, precision: int = 64) -> None:
+    def from_file(cls, file: str | Path, precision: int, *_) -> None:
         """
         Create a new hash object from a file
         - precision is how much of the file to use (x 4 sec)

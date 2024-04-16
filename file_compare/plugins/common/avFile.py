@@ -33,7 +33,7 @@ class AVFile:
         self.media = self._get_media()
 
         if with_hash and not self.__SKIP_HASH:
-            self.hash = Hasher.from_file(filepath, precision, self.media)
+            self.hash = Hasher.from_file(filepath, precision, self.media, self.duration)
     
     @property
     def container(self):
