@@ -84,7 +84,7 @@ class ImageHasher(Hasher):
     hash: ImageHash
     
     def matches(self, other: Self, threshold: float | int = None) -> bool:
-        if other is None or type(self) is not type(other):
+        if type(self) is not type(other):
             return False
         if len(self.hash) != len(other.hash):
             raise ValueError("Perceptual hash array size mismatch.", len(self.hash), len(other.hash))
@@ -129,6 +129,9 @@ class VideoHasher(Hasher):
     
 
     def matches(self, other: Self, threshold: float | int = None) -> bool:
+        if type(self) is not type(other):
+            return False
+        
         frame_count = min(len(self.hash), len(other.hash), self._VHASH_FCOUNT)
         if frame_count < 1:
             return False
@@ -193,7 +196,7 @@ class AudioHasher(Hasher):
     hash: tuple[float, bytes]
     
     def matches(self, other: Self, threshold: float | int = None) -> bool:
-        if other is None or type(self) is not type(other):
+        if type(self) is not type(other):
             return False
         return compare_fingerprints(self.hash, other.hash) >= threshold / 100.0
     
