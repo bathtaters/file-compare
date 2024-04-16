@@ -112,7 +112,7 @@ class FFStream(RichCompare):
     
     _FIELD_DICT = { "p": "progressive", "i": "interlaced" }
     __RX_BASE = compile(r"^(\w+)\s*<([^>]+)>:\s*([0-9\.]+)\s*s\s*\(([\d\.]+\s*\w?)bps\)(.*)$", IGNORECASE)
-    __RX_VID = compile(r"^\s*@\s*([0-9\.]+)fps,?\s*(\d+)\s*x\s*(\d+)(\w)$", IGNORECASE)
+    __RX_VID = compile(r"^\s*@\s*([0-9\.]+)fps,?\s*(\d+)\s*x\s*(\d+)([A-Za-z]?)$", IGNORECASE)
 
     @classmethod
     def from_str(cls, string: str):
