@@ -38,6 +38,13 @@ class Hasher:
         """
         raise NotImplementedError("matches")
     
+
+    def __hash__(self):
+        """
+        Override if self.hash is not hashable
+        """
+        return hash(self.hash)
+    
     
     def __eq__(self, other: Self):
         """
@@ -160,6 +167,10 @@ class VideoHasher(Hasher):
         return "|".join(str(h) for h in self.hash)
     
 
+    def __hash__(self):
+        return sum( hash(h) for h in self.hash )
+    
+
     @classmethod
     def from_str(cls, string: str) -> Self:
         if not string:
@@ -212,6 +223,10 @@ class AudioHasher(Hasher):
     def __str__(self) -> str:
         return f"{round(self.hash[0], 2)}:" + self.hash[1].decode()
     
+
+    def __hash__(self):
+        return hash(self.hash[1])
+
 
     @classmethod
     def from_str(cls, string: str) -> Self:
