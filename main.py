@@ -73,7 +73,7 @@ options = {
     # Ignore these files
     "ignore": ('.DS_Store','Thumbs.db'),
     # Path to log file used to backup/recover interrupted scans
-    "logpath": "/tmp/.scan.log",
+    "logpath": "~/.filescan.log",
     # If True, prints each duplicate found to stderr
     "verbose": False,
     # Set to a list of paths, will force AutoKeeper to only remove files under these paths
