@@ -39,7 +39,7 @@ def move_files(files: list[File], to_dirs: list[Path | str], verbose = False):
         return (None, None)
     
     for d in range(len(to_dirs)):
-        to_dirs[d] = Path(to_dirs[d]).resolve()
+        to_dirs[d] = Path(to_dirs[d]).expanduser().resolve()
         if not to_dirs[d].is_dir():
             printerr(f"{to_dirs[d]} is not a valid directory. Move failed.")
             return (None, None)
@@ -78,7 +78,7 @@ def recover_files(files: list[File], from_dirs: list[Path | str], verbose = Fals
         return (None, None)
     
     for d in range(len(from_dirs)):
-        from_dirs[d] = Path(from_dirs[d]).resolve()
+        from_dirs[d] = Path(from_dirs[d]).expanduser().resolve()
         if not from_dirs[d].is_dir():
             printerr(f"{from_dirs[d]} is not a valid directory. Move failed.")
             return (None, None)

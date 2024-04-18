@@ -44,7 +44,7 @@ def get_sibling(base: Path, siblings: list[Path]):
 
 def get_drive(child: Path):
     """Get drive of Path object (For Windows or Mac)"""
-    child = child.resolve()
+    child = child.expanduser().resolve()
     try:
         drive = child.parts.index("Volumes")
         return Path(*child.parts[:drive + 2])

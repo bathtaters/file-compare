@@ -54,7 +54,7 @@ class ComparisonController:
                     bypassing other rules.
             - Plus settings to be passed to custom plugins
         """
-        self.roots = [Path(r) for r in roots]
+        self.roots = [Path(r).expanduser().resolve() for r in roots]
         self.verbose = verbose
         self.group_by = group_by
         self.plugin_settings = plugin_settings

@@ -40,7 +40,7 @@ class File:
     @property
     def quoted(self):
         """Full filepath, quoted for command line"""
-        return f'"{self.path.resolve().as_posix()}"'
+        return f'"{self.path.as_posix()}"'
 
     keep: bool
     """True/False to retain file while cleaning files"""
@@ -54,7 +54,7 @@ class File:
         if type(path) is self.__class__:
             self.__dict__.update(path.__dict__)
         else:
-            self.__path = Path(path).resolve()
+            self.__path = Path(path).expanduser().resolve()
 
         self.extensions: list[ComparisonPlugin] = []
         for plugin in self.plugins:

@@ -19,7 +19,7 @@ class CSVLog:
     """Underlying CSV I/O object"""
 
     def __init__(self, logpath: str | Path = None) -> None:
-        self.logpath = Path(logpath) if logpath else None
+        self.logpath = Path(logpath).expanduser().resolve() if logpath else None
         self.stats = [plugin.STATS for plugin in File.plugins]
         self._csv = CSVParser()
 
