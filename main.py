@@ -43,6 +43,7 @@ Options for scan & keep modes:
   -vb:# Variance range (# is +/- value in bytes) of video bitrate within group.
   -vd:# Variance range (# is +/- value in seconds) of video duration within group.
   -vs:# Variance range (# is +/- value in pixels) of image size (w x h) within group.
+  -fv:# For m:view, filter out groups with less than this many matches.
   -v    If present, prints every match found (NOTE: All feedback is printed to stderr).
   -h    Shows you this help text.
 
@@ -70,6 +71,8 @@ options = {
     "time_var": 0,
     # Default shortest filename length that will use the alternative matcher.
     "min_name": 3,
+    # For m:view, filter out groups with less than this many matches.
+    "view_filter": 0,
     # Ignore these files
     "ignore": ('.DS_Store','Thumbs.db'),
     # Path to log file used to backup/recover interrupted scans

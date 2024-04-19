@@ -65,19 +65,19 @@ def find_nested(array: Iterable, test: Callable[[Any], bool]):
     raise ValueError("Test not passed by any value in array.")
 
 
-def get_idx(prompt: str, array: list, default: int = 0):
+def get_idx(prompt: str, items: list[tuple[Any,Any]], default: int = 0):
     """Get array index from user, using 'default' if non-numeric
     or None if index is out of range or input is 'q'."""
-    idx = input(f"{prompt} [0-{len(array) - 1}]: ")
+    idx = input(f"{prompt} [0-{len(items) - 1}]: ")
     if idx.isdigit():
         idx = int(idx)
     elif idx and idx[0].lower() == 'q':
-        return (None, None)
+        return (None, None, None)
     else:
         idx = default
-    if idx not in range(len(array)):
-        return (None, None)
-    return (idx, array[idx])
+    if idx not in range(len(items)):
+        return (None, None, None)
+    return (idx, *items[idx])
 
 
 _METRIC_PREFIX = ("", "K", "M", "G", "T", "P", "E", "Z", "Y")

@@ -31,6 +31,7 @@ class ComparisonController:
         group_by: list[EnumGet | str] = None,
         headers: list[EnumGet] = None,
         logpath: str | Path = None,
+        view_filter: int = 0,
         verbose = False,
         plugins: list[ComparisonPlugin] = [],
         **plugin_settings,
@@ -43,6 +44,7 @@ class ComparisonController:
         - group_by is a list of StatEnums to create FileGroups of
         - headers is the header for the CSV file
         - logpath will create a log file at the given path that can be used to recover interrupted scans
+        - view_filter is the minimum number of files a group must have to appear in the view list.
         - verbose will print each duplicate that is found
         - plugins should include any ComparisonPlugins you wish to use (FilePlugin is always included)
         - plugin_settings allows additional keyword args to be passed through to ComparisonPlugins
@@ -57,6 +59,7 @@ class ComparisonController:
         self.roots = [Path(r).expanduser().resolve() for r in roots]
         self.verbose = verbose
         self.group_by = group_by
+        self.view_filter = view_filter
         self.plugin_settings = plugin_settings
         File.plugins = [FilePlugin] + plugins
 
@@ -92,13 +95,19 @@ class ComparisonController:
         
 
     def view_all(self, only_deleted = False):
-        """Open images in system viewer, one by one"""
+        """Open files in system viewer, one by one"""
         files: FileGroup
-        grp = -1
+        printerr("Viewing groups " + (
+            f"(With at least {self.view_filter} matches)..."
+            if self.view_filter else "..."
+        ))
+        filtered = [(i,g) for i,g in enumerate(self._data) if len(g) >= self.view_filter]
+        idx = -1
         while True:
-            grp, files = get_idx(f"Open group {grp+1} or skip to", self._data, grp + 1)
-            if grp is None:
+            idx, grp, files = get_idx(f"Open group {idx+1} or skip to", filtered, idx + 1)
+            if idx is None:
                 break
+            print(f"  Viewing group {idx}", f"(#{grp})" if grp != idx else "")
             files.view(only_deleted)
 
     
