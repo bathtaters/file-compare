@@ -8,7 +8,6 @@ register_heif_opener()  # Allow scanning HEIF/HEIC files
 
 class ImageStat(EnumGet):
     IMG_TYPE = "Encoding"
-    IMG_PXL = "Pixel Format"
     IMG_SIZE = "Dimensions"
     IMG_HASH = "Image Hash"
     IMG_FRAMES = "Framecount"
@@ -52,7 +51,6 @@ class ImagePlugin(ComparisonPlugin):
         precision = self.settings.get("precision", self._DEF_PRECISION)
         with Image.open(self.path) as img:
             data[ImageStat.IMG_TYPE] = img.format
-            data[ImageStat.IMG_PXL] = img.mode
             data[ImageStat.IMG_SIZE] = img.size
             data[ImageStat.IMG_HASH] = ImageHasher.from_file(img, precision)
             data[ImageStat.IMG_FRAMES] = getattr(img, "n_frames", 1)
@@ -77,10 +75,14 @@ class ImagePlugin(ComparisonPlugin):
     @classmethod
     def comparison_funcs(cls):
         """Comparison functions for each Stat. { Stat: (hash1, hash2) -> bool} }
-        Optional to override default hash equality function (==)."""
+        Optional to override default hash equality function (==).
+        Also can add a static value to specific stats by adding Stat: <value>."""
         threshold = cls.settings.get("threshold", 100) # 100 = exact match
         return {
             ImageStat.IMG_HASH: lambda a,b,t=threshold: bool(a) and a.matches(b, t),
+            ImageStat.IMG_FRAMES: lambda a,b: a == b and bool(a) and a > 1,
+            ImageStat.IMG_TYPE: False,
+            ImageStat.IMG_SIZE: False,
         }
 
     @classmethod

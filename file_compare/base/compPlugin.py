@@ -69,7 +69,8 @@ class ComparisonPlugin(Generic[Stat]):
     @classmethod
     def comparison_funcs(cls) -> dict[Stat, Callable[[Hashable, Hashable], bool]]:
         """Comparison functions for each Stat.
-        Optional to override default hash equality function (==)."""
+        Optional to override default hash equality function (==).
+        Also can add a static value to specific stats by adding Stat: <value>."""
         return {}
 
     @classmethod

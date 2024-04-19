@@ -90,11 +90,15 @@ class AVPlugin(ComparisonPlugin):
     @classmethod
     def comparison_funcs(cls):
         """Comparison functions for each Stat. { Stat: (hash1, hash2) -> bool} }
-        Optional to override default hash equality function (==)."""
+        Optional to override default hash equality function (==).
+        Also can add a static value to specific stats by adding Stat: <value>."""
 
         threshold = cls.settings.get("threshold", 100) # 100 = exact match
         return {
             AVStat.AV_HASH: lambda a,b,t=threshold: bool(a) and a.matches(b, t),
+            AVStat.AV_MEDIA: False,
+            AVStat.AV_CONTAINER: False,
+            AVStat.AV_BITRATE: False,
         }
 
     @classmethod
