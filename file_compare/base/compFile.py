@@ -16,6 +16,9 @@ class File:
     roots: list[Path] = []
     """List of root paths, to remove for 'short' path formatting"""
 
+    _comparers: dict[EnumGet, Callable[[Hashable, Hashable], bool]] = None
+    """Cached comparison functions."""
+
     @property
     def path(self):
         """Path of this file (read-only)"""
@@ -122,12 +125,14 @@ class File:
         return value
     
     @classmethod
-    def comparison_funcs(cls) -> dict[EnumGet, Callable[[Hashable, Hashable], bool]]:
-        """Combined comparison functions of all plugins"""
-        funcs = {}
-        for plugin in cls.plugins:
-            funcs.update(plugin.comparison_funcs())
-        return funcs
+    def compare(cls, stat: EnumGet, a: Hashable, b: Hashable):
+        """Compare two stat values, returning True if they are a match."""
+        if cls._comparers is None:
+            cls.refresh_comparison_funcs()
+
+        if stat in cls._comparers:
+            return cls._comparers[stat](a, b)
+        return bool(a == b)
     
     @classmethod
     def hash_to_str(cls, stat: EnumGet, hash: Hashable):
@@ -144,6 +149,13 @@ class File:
             if type(stat) is plugin.STATS:
                 return plugin.to_hash(stat, plugin.from_str(stat, string))
         raise TypeError(f"Stat {stat} has no cooresponding plugin!")
+    
+    @classmethod
+    def refresh_comparison_funcs(cls):
+        """Combined comparison functions of all plugins"""
+        cls._comparers = {}
+        for plugin in cls.plugins:
+            cls._comparers.update(plugin.comparison_funcs())
     
     def __eq__(self, other: Self):
         return self.path.__eq__(other.path)

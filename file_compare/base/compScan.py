@@ -14,7 +14,6 @@ class FileScanner:
     - combine_groups {bool}: If True, combine groups with matching hashes/keys (Default: True)
     - logpath {str}: If provided, save each scanned file to the path provided, and use this path to recover an interrupted san (Default: None)
     - verbose {bool}: If True, print each duplicate that is found
-    - comparers {EnumGet: (hash,hash)->bool}: Special comparison dictionary based on StatEnum (Result of File.comparison_funcs)
     """
 
     __LIMIT = None
@@ -28,8 +27,6 @@ class FileScanner:
     """If True, combine groups with matching hashes/keys (Default: True)"""
     verbose: bool
     """If True, print each duplicate that is found"""
-    comparers: dict[EnumGet, Callable[[Hashable, Hashable], bool]]
-    """Special comparison dictionary based on StatEnum (Result of File.comparison_funcs)"""
     
     def __init__(
         self,
@@ -46,8 +43,6 @@ class FileScanner:
         self.verbose = verbose
         self._log = CSVLog(logpath)
 
-        self.comparers = {}
-
     @property
     def exts(self):
         return self.__exts
@@ -62,8 +57,6 @@ class FileScanner:
     def run(self, dirs: list[Path | str], groups: list[EnumGet]):
         """Run scan, returning a list of FileGroups, only selectings by provided groups
         (or all in StatEnums if None provided)"""
-        
-        self.comparers = File.comparison_funcs()
 
         matches, skipped, scanned = self._log.open(groups)
         if scanned:
@@ -114,13 +107,6 @@ class FileScanner:
     def cleanup(self):
         """Delete log file (If one exists)"""
         self._log.remove()
-    
-
-    def __is_match(self, stat: EnumGet, a: Hashable, b: Hashable):
-        """Returns TRUE if a & b match"""
-        if stat in self.comparers:
-            return self.comparers[stat](a, b)
-        return a == b
 
     
     def __is_valid_ext(self, path: Path, skipped_exts: set):
@@ -149,7 +135,7 @@ class FileScanner:
                     continue
                 
                 for key in group:
-                    if self.__is_match(stat, key, hash):
+                    if File.compare(stat, key, hash):
                         FileGroup.append_to(group, stat, file, key)
                         logdata.append((stat, file.hash_to_str(stat, key)))
                 
@@ -181,7 +167,7 @@ class FileScanner:
 
                 found = False
                 for key in combo:
-                    if self.__is_match(stat, hash, key):
+                    if File.compare(stat, hash, key):
                         combo[key].add_unique(files)
                         found = True  # combine matching hashes
                 if not found:
