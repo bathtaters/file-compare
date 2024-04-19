@@ -53,6 +53,7 @@ Options for scan & keep modes:
   -vb:# Variance range (# is +/- value in bytes) of video bitrate within group.
   -vd:# Variance range (# is +/- value in seconds) of video duration within group.
   -vs:# Variance range (# is +/- value in pixels) of image size (w x h) within group.
+  -fc:# For m:clean, remove files with less than this many matching stats.
   -fv:# For m:view, filter out groups with less than this many matches.
   -v    If present, prints every match found (NOTE: All feedback is printed to stderr).
   -h    Shows you this help text.

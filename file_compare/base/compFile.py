@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 from .compFilePlugin import FilePlugin
 from .compPlugin import ComparisonPlugin
-from .compUtils import EnumGet, get_parent
+from .compUtils import EnumGet, get_parent, printerr
 
 
 class File:
@@ -96,6 +96,26 @@ class File:
         """Open file in system viewer"""
         return subprocess.call(['open', self.path.as_posix()])
     
+    def match_count(self, other: Self, max_matches: int = None):
+        """Count the number of matching stats between two files."""
+        if self is other:
+            return max_matches or len(self.stats)
+        
+        matches = 0
+        for stat in self.stats:
+            if max_matches is not None and matches >= max_matches:
+                return matches
+            
+            other_hash = other.to_hash(stat)
+            if other_hash is None:
+                continue
+            try:
+                matches += self.compare(stat, self.to_hash(stat), other_hash)
+            except Exception as e:
+                printerr(f"Error comparing {self.short} to {other.short} on {stat}: {e}")
+            
+        return matches
+    
     def current_stats(self):
         """Combined stats of all plugins"""
         stats: dict[EnumGet] = {}
@@ -125,14 +145,16 @@ class File:
         return value
     
     @classmethod
-    def compare(cls, stat: EnumGet, a: Hashable, b: Hashable):
+    def compare(cls, stat: EnumGet, a: Hashable, b: Hashable) -> bool:
         """Compare two stat values, returning True if they are a match."""
         if cls._comparers is None:
             cls.refresh_comparison_funcs()
 
         if stat in cls._comparers:
-            return cls._comparers[stat](a, b)
-        return bool(a == b)
+            if callable(cls._comparers[stat]):
+                return cls._comparers[stat](a, b)
+            return cls._comparers[stat]
+        return a == b
     
     @classmethod
     def hash_to_str(cls, stat: EnumGet, hash: Hashable):

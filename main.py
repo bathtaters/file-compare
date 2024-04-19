@@ -43,6 +43,7 @@ Options for scan & keep modes:
   -vb:# Variance range (# is +/- value in bytes) of video bitrate within group.
   -vd:# Variance range (# is +/- value in seconds) of video duration within group.
   -vs:# Variance range (# is +/- value in pixels) of image size (w x h) within group.
+  -fc:# For m:clean, remove files with less than this many matching stats.
   -fv:# For m:view, filter out groups with less than this many matches.
   -v    If present, prints every match found (NOTE: All feedback is printed to stderr).
   -h    Shows you this help text.
@@ -71,6 +72,8 @@ options = {
     "time_var": 0,
     # Default shortest filename length that will use the alternative matcher.
     "min_name": 3,
+    # For m:clean, remove files with less than this many matching stats.
+    "clean_filter": 0,
     # For m:view, filter out groups with less than this many matches.
     "view_filter": 0,
     # Ignore these files
@@ -139,7 +142,7 @@ def main():
 
     elif mode == "clean":
         scanner.load_csv(csv)
-        scanner.clean(clean_solo=True, clean_kept=True)
+        scanner.clean(clean_solo=True, clean_kept=True, use_filter=True)
         scanner.save_csv(csv)
     
     elif mode == "view":

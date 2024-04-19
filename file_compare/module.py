@@ -31,6 +31,7 @@ class ComparisonController:
         group_by: list[EnumGet | str] = None,
         headers: list[EnumGet] = None,
         logpath: str | Path = None,
+        clean_filter: int = None,
         view_filter: int = 0,
         verbose = False,
         plugins: list[ComparisonPlugin] = [],
@@ -44,6 +45,7 @@ class ComparisonController:
         - group_by is a list of StatEnums to create FileGroups of
         - headers is the header for the CSV file
         - logpath will create a log file at the given path that can be used to recover interrupted scans
+        - clean_filter is the minimum number of stats two files must share to remain in a group while cleaning.
         - view_filter is the minimum number of files a group must have to appear in the view list.
         - verbose will print each duplicate that is found
         - plugins should include any ComparisonPlugins you wish to use (FilePlugin is always included)
@@ -60,6 +62,7 @@ class ComparisonController:
         self.verbose = verbose
         self.group_by = group_by
         self.view_filter = view_filter
+        self.clean_filter = clean_filter
         self.plugin_settings = plugin_settings
         File.plugins = [FilePlugin] + plugins
 
@@ -187,17 +190,27 @@ class ComparisonController:
         return to_delete
     
     
-    def clean(self, *, clean_solo = False, clean_kept = False, silent = False):
+    def clean(self, *, clean_solo = False, clean_kept = False, use_filter = False, silent = False):
         """Checks each file, removing deleted ones.
         - If clean_solo is True, will remove groups with one member.
         - If clean_kept is True, will remove all groups whoose entire group is marked to keep.
+        - If use_filter is True, will remove files who don't share > clean_filter stats with any other group member.
         - If silent is True, hides start output.
         - Returns a count of (deleted files, removed groups)"""
 
         if not silent:
-            printerr("Cleaning up file data...")
+            printerr("Cleaning up file groups"+ (
+                f" (With at least {self.clean_filter} matching stats)..."
+                if self.clean_filter else "..."
+            ))
         
-        result = clean_data(self._data, clean_solo, clean_kept, self.verbose)
+        result = clean_data(
+            self._data,
+            clean_solo,
+            clean_kept,
+            self.clean_filter if use_filter else 0,
+            self.verbose,
+        )
         return result
     
     

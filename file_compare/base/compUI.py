@@ -63,6 +63,7 @@ OPT_MAP = {
     "vb": Arg("bitrate_var", int),
     "vd": Arg("duration_var", int),
     "vs": Arg("dimension_var", int),
+    "fc": Arg("clean_filter", int),
     "fv": Arg("view_filter", int),
     "v": Arg("verbose", bool),
     "h": Arg("help", bool),

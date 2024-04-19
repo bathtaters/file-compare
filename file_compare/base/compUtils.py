@@ -3,8 +3,9 @@ from sys import stderr
 from pathlib import Path
 from re import compile, IGNORECASE
 from enum import Enum
-from typing import Any, Self, Callable, Iterable, Hashable
+from typing import Any, Self, Callable, Iterable, Hashable, TypeVar
 
+T = TypeVar("T")
 
 def printerr(*args, **kwargs):
     """Print to stderr"""
@@ -154,6 +155,19 @@ def sortlist(a, b, prefs: list, valtype: str = None):
             print(f"Unknown {valtype}: {a}")
         return -1
     return sortnum(a, b)
+
+
+def get_matches(array: list[T], comparison: Callable[[T, T], bool], skip_indexes: list[int] = []):
+    """Get the indexes of all matching elements in an array"""
+    matches: set[int] = set()
+
+    for i, file in enumerate(array):
+        if i in matches or i in skip_indexes:
+            continue
+        for j in range(i + 1, len(array)):
+            if j not in skip_indexes and comparison(file, array[j]):
+                matches.update((i,j))
+    return matches
 
 
 class EnumGet(Enum):

@@ -22,20 +22,21 @@ class FileAutoKeeper:
     ):    
         self.verbose = verbose
         self.settings = settings
-        self.algorithms = None
-        self.not_rm_path = None
+        self.algorithms: dict[EnumGet, list[Algorithm]] = None
+        self.not_rm_path: Algorithm = None
 
     
     def init(self):
         """Initialize Keeper before running (Builds algorithm functions from File.plugins)"""
+        # Build algorithms
         self.algorithms = {}
-        
         for plugin in File.plugins:
             algos = plugin.ALGO_BUILDER(**self.settings).algorithms
             if None in algos:
                 self.algorithms[plugin] = algos.pop(None)
             self.algorithms.update(algos)
 
+        # Build rm_paths algorithm
         self.not_rm_path = None
         if self.settings.get("rm_paths"):
             self.not_rm_path = KeepAlgorithms.pass_test_algo(
@@ -74,8 +75,6 @@ class FileAutoKeeper:
         if self.not_rm_path:            # Override, keeping only non rm_paths
             for file in self.not_rm_path(files):
                 file.keep = True
-            return
-        if self.has_keep(files):        # Skip if already marked
             return
         
         matches = list(files)
