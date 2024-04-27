@@ -87,7 +87,7 @@ def get_ui(args: list[str], help_text: str, default_csv: str):
                 opts["roots"].append(Path(arg))
 
             else:
-                raise ArgError(f"Unknown option '{arg}'")
+                raise ArgError(f"Unknown option or path not found '{arg}'")
         
         if "help" in opts:
             opts.pop("help")
