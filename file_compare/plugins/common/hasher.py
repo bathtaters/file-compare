@@ -180,16 +180,15 @@ class VideoHasher(Hasher):
 
     @classmethod
     def from_file(cls, file: str | Path, precision: int, duration: float):
-        file = Path(file)
-        temp = Path(gettempdir())
-        precision = max(2, precision >> 3)
+        file, temp = Path(file), Path(gettempdir())
+        precision = max(2, precision >> 3) # Match to Image precision
 
-        if cls._create_imgs(file, temp.joinpath(f"{file.stem}_%02d.png"), duration):
+        if cls._create_imgs(file, temp.joinpath(f"{file.stem}_%02d.tif"), duration):
             printerr(f"    Failed to generate video hash: {file}")
             return None
         
         hashes = []
-        for tmpfile in sorted(temp.glob(f"{file.stem}_*.png")):
+        for tmpfile in sorted(temp.glob(f"{file.stem}_*.tif")):
             with Image.open(tmpfile) as img:
                 hashes.append(average_hash(img))
             tmpfile.unlink()
