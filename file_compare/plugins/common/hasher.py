@@ -24,6 +24,9 @@ class Hasher:
     Use Hasher(hash) to set self.hash.
     """
 
+    _FFMPEG_PATH = "ffmpeg"
+    _FFMPEG_LOG = "fatal"
+
     def __init__(self, hash) -> None:
         """
         Create a new hash object
@@ -137,8 +140,7 @@ class VideoHasher(Hasher):
     """Calculate perceptual hash of video file"""
 
     _VHASH_FCOUNT = 10
-    _FFMPEG_PATH = "ffmpeg"
-    _FFMPEG_LOG = "fatal"
+    """Number of frames per video to compare"""
     
     hash: list[ImageHash]
     
@@ -211,35 +213,72 @@ class VideoHasher(Hasher):
 class AudioHasher(Hasher):
     """Calculate acoustic fingerprint of file"""
 
-    hash: tuple[float, bytes]
+    hash: bytes
+
+    _SEG_DURATION = 1.0
+    """Number of seconds each segment should be"""
+    _FP_CODEC = "pcm_s16le"
+    """Codec to use for fingerprinting (s16le used by audioread.ffdec.FFMpeg)"""
     
     def matches(self, other: Self, threshold: float | int = None) -> bool:
         if type(self) is not type(other):
             return False
-        return compare_fingerprints(self.hash, other.hash) >= threshold / 100.0
+        count = compare_fingerprints((0, self.hash), (0, other.hash))
+        # Using 275 to allow use of same threshold for image hashing
+        return count * 275 >= threshold
     
 
     def __str__(self) -> str:
-        return f"{round(self.hash[0], 2)}:" + self.hash[1].decode()
+        return self.hash.decode()
     
 
     def __hash__(self):
-        return hash(self.hash[1])
+        return hash(self.hash)
 
 
     @classmethod
     def from_str(cls, string: str) -> Self:
         if not string:
             return None
-        dur, fp = string.split(":")
-        return cls((float(dur), fp.encode()))
+        return cls(string.encode())
     
 
     @classmethod
-    def from_file(cls, file: str | Path, precision: int, *_) -> None:
+    def from_file(cls, file: str | Path, precision: int, duration: float):
         """
         Create a new hash object from a file
-        - precision is how much of the file to use (x 4 sec)
+        - precision is how many segments of the file to make (precision / 2 = number of clips of _SEG_DURATION)
+        - these are divided equally across the entire file using duration
         """
-        return cls(fingerprint_file(file, precision * 4))
+        file, tmpfile = Path(file), Path(gettempdir(), f"{file.stem}.wav")
+        precision = max(precision >> 1, 4) # Match to Image precision
 
+        if cls._segment_audio(file, tmpfile, duration, precision):
+            printerr(f"    Failed to generate audio hash: {file}")
+            return None
+        
+        fp = fingerprint_file(tmpfile, precision * cls._SEG_DURATION)[1]
+        tmpfile.unlink()
+        return cls(fp)
+
+
+    @classmethod
+    def _segment_audio(cls, input: str, output: str, duration: float, count: int):
+        """Split a longer audio file into 'count' equally-spaced segments
+        that are _SEG_DURATION long."""
+
+        dis = duration / count
+        segs = "+".join(
+            f"between(t,{seg * dis},{seg * dis + cls._SEG_DURATION})"
+            for seg in range(count)
+        )
+
+        cmd = [
+            cls._FFMPEG_PATH,
+            "-i", str(input),
+            "-af", f"aselect='{segs}',asetpts=N/SR/TB",
+            "-c", cls._FP_CODEC,
+            str(output),
+            "-v", cls._FFMPEG_LOG,
+        ]
+        return run(cmd).returncode
