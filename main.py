@@ -6,7 +6,7 @@ by bathtaters
 """
 usage = """
 
-File Scanner (v2.1.2) by bathtaters
+File Scanner (v2.1.3) by bathtaters
 Find and manage duplicate/similar files.
 
 Usage: python $MAIN [-m:mode] [-option:value] [csv path] paths...
