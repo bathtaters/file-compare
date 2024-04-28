@@ -1,5 +1,6 @@
 from typing import Self, TypeAlias, Literal
 from pathlib import Path
+from shutil import rmtree
 from subprocess import run
 from tempfile import gettempdir
 from imagehash import ImageHash, hex_to_hash, average_hash
@@ -187,6 +188,7 @@ class VideoHasher(Hasher):
 
         if cls._create_imgs(file, temp.joinpath(f"{file.stem}_%02d.tif"), duration):
             printerr(f"    Failed to generate video hash: {file}")
+            rmtree(temp, True)
             return None
         
         hashes = []
@@ -255,6 +257,7 @@ class AudioHasher(Hasher):
 
         if cls._segment_audio(file, tmpfile, duration, precision):
             printerr(f"    Failed to generate audio hash: {file}")
+            tmpfile.unlink()
             return None
         
         fp = fingerprint_file(tmpfile, precision * cls._SEG_DURATION)[1]
