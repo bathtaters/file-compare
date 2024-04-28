@@ -66,9 +66,9 @@ class Hasher:
         """Convert string into the assumed hasher"""
         if not string:
             return None
-        if ":" in string:
-            return AudioHasher.from_str(string)
-        return VideoHasher.from_str(string)
+        if "|" in string:
+            return VideoHasher.from_str(string)
+        return AudioHasher.from_str(string)
     
     
     @staticmethod
