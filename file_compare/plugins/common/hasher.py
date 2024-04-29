@@ -203,7 +203,7 @@ class VideoHasher(Hasher):
     def _create_imgs(cls, input: str, output: str, duration: float):
         cmd = [
             cls._FFMPEG_PATH,
-            "y",
+            "-y",
             "-i", str(input),
             "-vf", f"fps={cls._VHASH_FCOUNT}/{duration}",
             str(output),
@@ -279,7 +279,7 @@ class AudioHasher(Hasher):
 
         cmd = [
             cls._FFMPEG_PATH,
-            "y",
+            "-y",
             "-i", str(input),
             "-af", f"aselect='{segs}',asetpts=N/SR/TB",
             "-c", cls._FP_CODEC,
