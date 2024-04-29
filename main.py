@@ -38,8 +38,8 @@ Options for scan & keep modes:
   -r:$  Path (from paths) to exclusively use when removing files (All files not under this path will be marked to keep).
   -t:#  Match threshold for perceptual hash comparison (As a percentage, with 100 being an exact match).
   -p:#  Size (precision) of perceptual hashes (As a power of 2, higher values take longer but are more precise).
-  -vs:# Variance range (# is +/- value in bytes) of file size to allowed within group.
-  -vt:# Variance range (# is +/- value in ms) of created/modified times to allowed within group.
+  -vs:# Variance range (# is +/- value in bytes) of file size within group.
+  -vt:# Variance range (# is +/- value in ms) of created/modified times within group.
   -vb:# Variance range (# is +/- value in bytes) of video bitrate within group.
   -vd:# Variance range (# is +/- value in seconds) of video duration within group.
   -vs:# Variance range (# is +/- value in pixels) of image size (w x h) within group.
