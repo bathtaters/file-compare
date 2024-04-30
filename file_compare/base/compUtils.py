@@ -187,7 +187,7 @@ class EnumGet(Enum):
             except ValueError:
                 pass
 
-        if type(val) is cls:
+        if val is None or type(val) is cls:
             return val
         upval = val.upper()
         for enum in cls:
