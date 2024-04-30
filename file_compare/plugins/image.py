@@ -81,8 +81,6 @@ class ImagePlugin(ComparisonPlugin):
         return {
             ImageStat.IMG_HASH: lambda a,b,t=threshold: bool(a) and a.matches(b, t),
             ImageStat.IMG_FRAMES: lambda a,b: a == b and bool(a) and a > 1,
-            ImageStat.IMG_TYPE: False,
-            ImageStat.IMG_SIZE: False,
         }
 
     @classmethod

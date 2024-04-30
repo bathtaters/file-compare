@@ -59,6 +59,8 @@ class FilePlugin(ComparisonPlugin[FileStat]):
 
     ALGO_BUILDER = FileAlgos
 
+    GROUP_BY = [FileStat.NAME, FileStat.SIZE]
+
     def current_stats(self):
         """Fetch stats dict from filesystem"""
         return {

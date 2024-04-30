@@ -96,9 +96,6 @@ class AVPlugin(ComparisonPlugin):
         threshold = cls.settings.get("threshold", 100) # 100 = exact match
         return {
             AVStat.AV_HASH: lambda a,b,t=threshold: bool(a) and a.matches(b, t),
-            AVStat.AV_MEDIA: False,
-            AVStat.AV_CONTAINER: False,
-            AVStat.AV_BITRATE: False,
         }
 
     @classmethod
