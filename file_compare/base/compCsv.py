@@ -158,9 +158,10 @@ class CSVParser:
     def _fix_hdr(self, plugins: list[type[EnumGet]]):
         """Set hdr to all values if None"""
         if self.hdr is None:
-            self.hdr = list(CsvStat)
+            self.hdr = []
             for plugin in plugins:
                 self.hdr.extend(plugin)
+        self.hdr = [stat for stat in CsvStat if stat not in self.hdr] + self.hdr
 
 
     def _set_hdr(self, csv_hdr: list[str], plugins: list[type[EnumGet]]):

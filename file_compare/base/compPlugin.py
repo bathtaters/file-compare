@@ -33,6 +33,9 @@ class ComparisonPlugin(Generic[Stat]):
     ALGO_BUILDER: type[KeepAlgorithms] = KeepAlgorithms
     """Class that will build algorithms to use for Keep mode"""
 
+    _HIDDEN: list[Stat] = []
+    """Stats to hide from CSV/output (Hidden stat's values will not persist)"""
+
     settings: dict[str] = {}
     """plugin_settings passed in from ComparisonController"""
 

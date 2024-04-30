@@ -68,6 +68,11 @@ class ComparisonController:
 
         for plugin in File.plugins:
             plugin.settings = plugin_settings
+        
+        if headers is None:
+            headers = []
+            for plugin in File.plugins:
+                headers.extend(p for p in plugin.STATS if p not in plugin._HIDDEN)
 
         self.comparer = FileScanner(exts, ignore, logpath=logpath, verbose=verbose)
         self.keeper = FileAutoKeeper(verbose, exts=exts, roots=roots, **plugin_settings)
@@ -220,9 +225,10 @@ class ComparisonController:
         return f"{cmd} {' '.join(path.quoted for path in to_delete)}"
 
 
-    def register_plugin(self, plugin: type[ComparisonPlugin] = None, **plugin_settings):
+    def register_plugin(self, plugin: type[ComparisonPlugin] = None, header: list[EnumGet] = None, **plugin_settings):
         """Add a new plugin and/or settings to the engine
-        raises TypeError if invalid type or ValueError if plugin is duplicate."""
+        - header: Add Stats to CSV header (Default: Add all plugin.STATS)
+        - raises TypeError if invalid type or ValueError if plugin is duplicate."""
 
         if plugin is not None:
             if not issubclass(plugin, ComparisonPlugin):
@@ -230,14 +236,28 @@ class ComparisonController:
             if plugin in File.plugins:
                 raise ValueError("Plugin has alredy been registered", plugin)
             
+            if header is None:
+                header = [stat for stat in plugin.STATS if stat not in plugin._HIDDEN]
+            for stat in header:
+                if stat not in self._csv.hdr:
+                    self._csv.hdr.append(stat)
+                    
             plugin.settings = self.plugin_settings
             File.plugins.append(plugin)
 
         self.plugin_settings.update(plugin_settings)
 
 
-    def deregister_plugin(plugin: type[ComparisonPlugin]):
-        """Remove a plugin that was previously registered."""
+    def deregister_plugin(self, plugin: type[ComparisonPlugin], header: list[EnumGet] = None):
+        """Remove a plugin that was previously registered.
+        - header: Remove Stats from CSV header (Default: Remove all plugin.STATS)"""
+
+        if header is None:
+            header = [stat for stat in plugin.STATS if stat not in plugin._HIDDEN]
+        for stat in header:
+            if stat in self._csv.hdr:
+                self._csv.hdr.remove(stat)
+        
         File.plugins.remove(plugin)
 
 
