@@ -8,9 +8,6 @@ from .ffstream import FFStream, to_metric
 class AVFile:
     """Analyzer for video/audio file"""
 
-    __SKIP_HASH = False
-    """Skip running time-consuming hash algorithm. (For debuggine since these are time-consuming)"""
-
     __TYPE_PREF = ("video", "audio", "data")
     """Order of preference for codec types"""
     
@@ -32,7 +29,7 @@ class AVFile:
         self.hash = None
         self.media = self._get_media()
 
-        if with_hash and not self.__SKIP_HASH:
+        if with_hash:
             self.hash = Hasher.from_file(filepath, precision, self.media, self.duration)
     
     @property

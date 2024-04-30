@@ -25,6 +25,9 @@ class Hasher:
     Use Hasher(hash) to set self.hash.
     """
 
+    __SKIP_HASH = False
+    """Skip running time-consuming hash algorithm. (For debugging since these are time-consuming)"""
+
     _FFMPEG_PATH = "ffmpeg"
     _FFMPEG_LOG = "fatal"
 
@@ -72,9 +75,11 @@ class Hasher:
         return AudioHasher.from_str(string)
     
     
-    @staticmethod
-    def from_file(file: str | Path | Image.Image, precision=64, format: HashFormat = "image", duration = 0.0):
+    @classmethod
+    def from_file(cls, file: str | Path | Image.Image, precision=64, format: HashFormat = "image", duration = 0.0):
         """Hash the given file."""
+        if cls.__SKIP_HASH:
+            return None
         try:
             if isinstance(file, Image.Image) or format == "image":
                 hasher = ImageHasher
