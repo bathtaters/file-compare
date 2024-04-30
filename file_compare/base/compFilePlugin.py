@@ -9,6 +9,8 @@ class FileStat(EnumGet):
     """File statistics used for comparison.
     - Value is used as CSV header unless otherwise provided in CsvHdr Enum"""
 
+    ALL = "All Files"
+    """Group all files together"""
     NAME = "Name"
     """Filename without extension"""
     SIZE = "Size"
@@ -61,9 +63,12 @@ class FilePlugin(ComparisonPlugin[FileStat]):
 
     GROUP_BY = [FileStat.NAME, FileStat.SIZE]
 
+    _HIDDEN = [FileStat.ALL]
+
     def current_stats(self):
         """Fetch stats dict from filesystem"""
         return {
+            FileStat.ALL: True,
             FileStat.NAME: self.path.stem,
             FileStat.SIZE: self.path.stat().st_size if self.path.exists() else 0,
             FileStat.CTIME: self.__round_dt(datetime.fromtimestamp(self.path.stat().st_ctime)),
@@ -99,7 +104,9 @@ class FilePlugin(ComparisonPlugin[FileStat]):
     @classmethod
     def to_str(cls, stat: FileStat, value) -> str | None:
         """Convert value of stat to a string for display/CSV"""
-        if stat == FileStat.SIZE:
+        if stat == FileStat.ALL:
+            return ""
+        elif stat == FileStat.SIZE:
             return to_metric(value, "B", 16)
         elif stat == FileStat.CTIME:
             return value.strftime(cls._DATE_FMT)
@@ -110,7 +117,9 @@ class FilePlugin(ComparisonPlugin[FileStat]):
     @classmethod
     def from_str(cls, stat: FileStat, value: str):
         """Convert result of to_str back into stat type"""
-        if stat == FileStat.SIZE:
+        if stat == FileStat.ALL:
+            return True
+        elif stat == FileStat.SIZE:
             return round(from_metric(value))
         elif stat == FileStat.CTIME:
             return cls.__to_dt(value)
