@@ -16,7 +16,16 @@ pip install git+https://github.com/bathtaters/file-compare.git@main
 
 ## Run via Command Line
 
-Using main.py
+With main.py, I recommend you run the following modes in order:
+1. `-m:scan` - Initial scan, set any options from below.
+2. `-m:keep` - Use internal algorithm to select the best file from each group and mark it in the CSV.
+3. *(Optional)* Manually edit the CSV to mark which files you'd like to 'keep'.
+5. *(Optional)* `m:view` - Show files using their default applications, one group at a time.
+4. *(Optional)* `m:reset` - Wipe all 'keep' flags from CSV if you'd like to start from scratch.
+6. `m:clean` - Tidy up and validate CSV. (Recommended you run this before `move`/`delete`.
+7. `-m:delete`/`-m:move` - Delete all unmarked files, or move them to the location in the `paths` arg.
+8. *(Optional)* `-m:recover` - Undo any file moves from the last run (Assuming you used `move` mode).
+
 
 ```
 Usage: python main.py [-m:mode] [-option:value] [csv path] paths...
